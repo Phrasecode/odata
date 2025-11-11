@@ -1,0 +1,92 @@
+# Source files (only include compiled dist/)
+src/
+__tests__/
+test/
+tests/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Examples and documentation source
+examples/
+docs/
+
+# Build and config files
+tsconfig.json
+tsconfig.build.json
+jest.config.js
+jest.config.unit.js
+jest.config.e2e.js
+typedoc.json
+.eslintrc*
+.prettierrc*
+.editorconfig
+nodemon.json
+
+# Development files
+*.md
+!README.md
+!LICENSE.md
+AUTHORS
+CODE-OF-CONDUCT.md
+CONTACT.md
+CONTRIBUTING.md
+TESTING.md
+issues.md
+
+# Coverage and test results
+coverage/
+.nyc_output/
+*.lcov
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+circle.yml
+appveyor.yml
+.circleci/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Package manager files
+.npmrc
+.yarnrc
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Misc
+.serverless/
+*.tgz
+

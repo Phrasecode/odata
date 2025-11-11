@@ -1,0 +1,17 @@
+# Build outputs
+dist
+coverage
+
+# Dependencies
+node_modules
+
+# Database files
+*.sql
+
+# Archives
+*.tar
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

@@ -1,0 +1,143 @@
+{
+  "name": "@phrasecode/odata",
+  "version": "0.7.0",
+  "description": "Modern OData v4 server library for Node.js with TypeScript support. Build standards-compliant REST APIs for Express, serverless AWS Lambda, Azure Functions, and Next.js API routes. Automatic query handling, metadata generation, and support for PostgreSQL, MySQL, Oracle, etc.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build:cjs": "tsc -p tsconfig.build.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:watch": "tsc -p tsconfig.build.json --watch",
+    "clean": "rimraf dist dist-esm",
+    "dev": "nodemon --exec ts-node examples/express-app/server.ts",
+    "test": "jest",
+    "test:unit": "jest --config jest.config.unit.js",
+    "test:unit:watch": "jest --config jest.config.unit.js --watch",
+    "test:unit:coverage": "jest --config jest.config.unit.js --coverage",
+    "test:e2e": "jest --config jest.config.e2e.js --runInBand",
+    "test:e2e:watch": "jest --config jest.config.e2e.js --watch --runInBand",
+    "test:all": "npm run test:unit && npm run test:e2e",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint \"src/**/*.ts\" \"__tests__/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" \"__tests__/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"examples/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"examples/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run test && npm run build",
+    "prepack": "node scripts/pre-publish-check.js",
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "release:patch": "npm version patch && npm publish --access public",
+    "release:minor": "npm version minor && npm publish --access public",
+    "release:major": "npm version major && npm publish --access public",
+    "test:api:all": "ts-node examples/express-app/test-runner.ts all",
+    "docs": "typedoc"
+  },
+  "keywords": [
+    "odata",
+    "typescript",
+    "rest",
+    "api",
+    "framework",
+    "express",
+    "middleware",
+    "query",
+    "filter",
+    "serverless-odata"
+  ],
+  "author": "Phrasecode Pvt Ltd",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phrasecode/odata.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Phrasecode/odata/issues"
+  },
+  "homepage": "https://github.com/Phrasecode/odata#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "peerDependencies": {
+    "express": "^4.0.0",
+    "mariadb": ">=3.0.0",
+    "mysql2": ">=2.0.0 || >=3.0.0",
+    "oracledb": ">=5.0.0",
+    "pg": ">=8.0.0",
+    "pg-hstore": ">=2.3.0",
+    "sqlite3": ">=5.0.0",
+    "tedious": ">=6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "pg": {
+      "optional": true
+    },
+    "pg-hstore": {
+      "optional": true
+    },
+    "mysql2": {
+      "optional": true
+    },
+    "mariadb": {
+      "optional": true
+    },
+    "sqlite3": {
+      "optional": true
+    },
+    "tedious": {
+      "optional": true
+    },
+    "oracledb": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "sequelize": "^6.37.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/jest": "^29.5.2",
+    "@types/node": "^20.3.1",
+    "@types/supertest": "^2.0.12",
+    "@typescript-eslint/eslint-plugin": "^5.59.11",
+    "@typescript-eslint/parser": "^5.59.11",
+    "better-sqlite3": "^12.4.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "eslint": "^8.42.0",
+    "express": "^4.18.2",
+    "jest": "^29.5.0",
+    "nodemon": "^3.0.1",
+    "pg": "^8.16.3",
+    "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "rimraf": "^5.0.1",
+    "sqlite3": "^5.1.7",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.1",
+    "typedoc": "^0.28.14",
+    "typescript": "^5.1.3"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "entryPointStrategy": "expand",
+  "out": "docs",
+  "plugin": [],
+  "name": "@phrasecode/odata",
+  "includeVersion": true,
+  "readme": "README.md",
+  "exclude": [
+    "**/node_modules/**",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/tests/**",
+    "**/__tests__/**"
+  ],
+  "excludePrivate": false,
+  "excludeProtected": false,
+  "excludeInternal": false,
+  "categorizeByGroup": true,
+  "sort": ["source-order", "required-first", "kind"],
+  "visibilityFilters": {
+    "protected": true,
+    "private": true,
+    "inherited": true,
+    "external": false
+  },
+  "searchInComments": true,
+  "treatWarningsAsErrors": false,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  }
+}
