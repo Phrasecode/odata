@@ -46,6 +46,7 @@ We created this package because existing OData solutions for Node.js were either
 - ✅ **Multiple Integration Options**:
   - Express.js Router (Option 1)
   - OpenRouter for Next.js, serverless, and any framework (Option 2)
+- ✅ **OData Metadata Endpoint**: Automatic `$metadata` endpoint for API discovery and schema introspection
 - ✅ **Type-Safe Query Results**: Full TypeScript support with proper type inference
 - ✅ **Automatic Database Schema Mapping**: Supports underscored column names, custom table names, and timestamps
 - ✅ **Webpack Compatible**: Special handling for circular dependencies in bundled environments
@@ -150,6 +151,181 @@ new ExpressRouter(app, { controllers: [userController], dataSource });
 
 app.listen(3000);
 // Now you can query: GET http://localhost:3000/User?$select=name,email&$filter=name eq 'John'
+// Metadata endpoint: GET http://localhost:3000/$metadata
+```
+
+## Serverless Deployments
+
+### AWS Lambda with API Gateway
+
+**handler.ts:**
+
+```typescript
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { DataSource, OpenRouter } from '@phrasecode/odata';
+import { User, Department } from './models';
+
+let odataRouter: OpenRouter;
+
+const initRouter = () => {
+  if (odataRouter) return odataRouter;
+
+  const dataSource = new DataSource({
+    dialect: 'postgres',
+    database: process.env.DB_NAME,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT || '5432'),
+    ssl: true,
+    models: [User, Department],
+  });
+
+  odataRouter = new OpenRouter({ dataSource });
+  return odataRouter;
+};
+
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  try {
+    const router = initRouter();
+    const path = event.path.replace('/api/', '');
+    const queryString = event.queryStringParameters
+      ? '?' + new URLSearchParams(event.queryStringParameters).toString()
+      : '';
+
+    let result;
+
+    if (path.startsWith('User')) {
+      result = await router.queryble(User)(`${path}${queryString}`);
+    } else if (path.startsWith('Department')) {
+      result = await router.queryble(Department)(`${path}${queryString}`);
+    } else {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Resource not found' }),
+      };
+    }
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+      body: JSON.stringify(result),
+    };
+  } catch (error) {
+    console.error('Error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    };
+  }
+};
+```
+
+**serverless.yml:**
+
+```yaml
+service: odata-api
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  environment:
+    DB_NAME: ${env:DB_NAME}
+    DB_USER: ${env:DB_USER}
+    DB_PASSWORD: ${env:DB_PASSWORD}
+    DB_HOST: ${env:DB_HOST}
+    DB_PORT: ${env:DB_PORT}
+
+functions:
+  odata:
+    handler: handler.handler
+    events:
+      - http:
+          path: api/{proxy+}
+          method: ANY
+          cors: true
+    timeout: 30
+    memorySize: 512
+
+plugins:
+  - serverless-offline
+  - serverless-plugin-typescript
+```
+
+### Next.js API Routes (Catch-All)
+
+**File Structure:**
+
+```
+pages/
+└── api/
+    └── odata/
+        └── [...slug].ts  ← Catch-all route
+```
+
+**pages/api/odata/[...slug].ts:**
+
+```typescript
+import { NextApiRequest, NextApiResponse } from 'next';
+import { DataSource, OpenRouter } from '@phrasecode/odata';
+import { User, Department, Order } from '@/models';
+
+let odataRouter: OpenRouter;
+
+const initRouter = () => {
+  if (odataRouter) return odataRouter;
+
+  const dataSource = new DataSource({
+    dialect: 'postgres',
+    database: process.env.DATABASE_URL!,
+    models: [User, Department, Order],
+  });
+
+  odataRouter = new OpenRouter({ dataSource });
+  return odataRouter;
+};
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const router = initRouter();
+
+    // Get the entity name from slug
+    const slug = req.query.slug as string[];
+    const entityName = slug[0];
+
+    // Build full URL with query params
+    const queryString = new URLSearchParams(req.query as any).toString();
+    const url = `/${slug.join('/')}${queryString ? '?' + queryString : ''}`;
+
+    // Route to appropriate model
+    let result;
+    switch (entityName) {
+      case 'User':
+        result = await router.queryble(User)(url);
+        break;
+      case 'Department':
+        result = await router.queryble(Department)(url);
+        break;
+      case 'Order':
+        result = await router.queryble(Order)(url);
+        break;
+      default:
+        res.status(404).json({ error: 'Resource not found' });
+        return;
+    }
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error('OData error:', error);
+    res.status(500).json({
+      error: error.message || 'Internal Server Error',
+    });
+  }
+}
 ```
 
 ## Defining Models
@@ -214,7 +390,7 @@ Defines column-level metadata for model properties.
 **Options:**
 
 - `dataType: IDataType` - Data type (required)
-- `feild?: string` - Custom column name (defaults to property name)
+- `field?: string` - Custom column name (defaults to property name)
 - `isPrimaryKey?: boolean` - Mark as primary key (default: false)
 - `isAutoIncrement?: boolean` - Auto-increment for numeric keys (default: false)
 - `isNullable?: boolean` - Allow NULL values (default: true)
@@ -239,7 +415,7 @@ name: string;
 // Unique email with custom column name
 @Column({
   dataType: DataTypes.STRING,
-  feild: 'email_address',
+  field: 'email_address',
   isUnique: true,
   isNullable: false
 })
@@ -460,6 +636,7 @@ class UserController extends ODataControler {
     });
   }
 
+  // Override only if you need custom logic. Otherwise, don't override.
   public async get(query: QueryParser) {
     const users: User[] = await this.queryble<User>(query);
     return users;
@@ -475,6 +652,9 @@ class OrderController extends ODataControler {
   }
 
   public async get(query: QueryParser) {
+    const data = query.getParams();
+    query.setTop(10);
+    query.setSelect([...data.select, { field: 'userId', table: 'CustomUser' }]);
     const orders: Order[] = await this.queryble<Order>(query);
     return orders;
   }
@@ -581,6 +761,262 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: 'Internal Server Error' });
   }
 }
+```
+
+## Metadata Endpoint
+
+The framework automatically provides an OData v4 compliant `$metadata` endpoint that describes all your entities, their properties, data types, and relationships. This endpoint is essential for OData clients to understand your API structure.
+
+### Accessing Metadata
+
+#### With Express Router
+
+The `$metadata` endpoint is automatically registered when you use `ExpressRouter`:
+
+```typescript
+import express from 'express';
+import { DataSource, ExpressRouter, ODataControler } from '@phrasecode/odata';
+
+const app = express();
+const dataSource = new DataSource({
+  dialect: 'postgres',
+  database: 'mydb',
+  username: 'user',
+  password: 'password',
+  host: 'localhost',
+  port: 5432,
+  models: [User, Department, Order],
+});
+
+new ExpressRouter(app, {
+  controllers: [userController, departmentController],
+  dataSource,
+});
+
+app.listen(3000);
+
+// Metadata is automatically available at:
+// GET http://localhost:3000/$metadata
+```
+
+#### With OpenRouter (Next.js, Serverless)
+
+For OpenRouter, you need to manually create a metadata endpoint:
+
+```typescript
+// pages/api/$metadata.ts (Next.js)
+import { NextApiRequest, NextApiResponse } from 'next';
+import { initializeODataRouter } from '../../lib/db-setup';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const odataRouter = initializeODataRouter();
+    const metadata = odataRouter.getMetaData();
+    res.status(200).json(metadata);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// Now accessible at: GET /api/$metadata
+```
+
+**For serverless functions (AWS Lambda, Vercel, etc.):**
+
+```typescript
+// lambda/metadata.ts
+import { OpenRouter } from '@phrasecode/odata';
+import { dataSource } from './db-setup';
+
+const router = new OpenRouter({ dataSource });
+
+export const handler = async (event: any) => {
+  try {
+    const metadata = router.getMetaData();
+    return {
+      statusCode: 200,
+      body: JSON.stringify(metadata),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    };
+  }
+};
+```
+
+### Metadata Response Format
+
+The metadata endpoint returns a JSON object describing all entities in your data model:
+
+```json
+{
+  "entities": [
+    {
+      "name": "User",
+      "keys": ["id"],
+      "properties": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primaryKey": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "name",
+          "type": "STRING",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "STRING",
+          "nullable": false,
+          "unique": true
+        },
+        {
+          "name": "age",
+          "type": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "navigationProperties": [
+        {
+          "name": "orders",
+          "type": "Collection(Order)",
+          "reference": [
+            {
+              "sourceKey": "id",
+              "targetKey": "userId"
+            }
+          ]
+        },
+        {
+          "name": "department",
+          "type": "Department",
+          "reference": [
+            {
+              "sourceKey": "departmentId",
+              "targetKey": "id"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "keys": ["orderId"],
+      "properties": [
+        {
+          "name": "orderId",
+          "type": "INTEGER",
+          "nullable": false,
+          "primaryKey": true,
+          "autoIncrement": true
+        },
+        {
+          "name": "userId",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "total",
+          "type": "DECIMAL",
+          "nullable": false
+        }
+      ],
+      "navigationProperties": [
+        {
+          "name": "user",
+          "type": "User",
+          "reference": [
+            {
+              "sourceKey": "userId",
+              "targetKey": "id"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Metadata Structure
+
+#### Entity Object
+
+Each entity in the metadata contains:
+
+| Field                  | Type     | Description                                                |
+| ---------------------- | -------- | ---------------------------------------------------------- |
+| `name`                 | string   | The entity name (model class name)                         |
+| `keys`                 | string[] | Array of primary key property names                        |
+| `properties`           | array    | Array of property definitions (columns)                    |
+| `navigationProperties` | array    | Array of relationship definitions (optional, if relations) |
+
+#### Property Object
+
+Each property describes a column:
+
+| Field           | Type    | Description                                  |
+| --------------- | ------- | -------------------------------------------- |
+| `name`          | string  | Property name                                |
+| `type`          | string  | Data type (INTEGER, STRING, BOOLEAN, etc.)   |
+| `nullable`      | boolean | Whether the property can be null             |
+| `primaryKey`    | boolean | Whether this is a primary key (optional)     |
+| `autoIncrement` | boolean | Whether the value auto-increments (optional) |
+| `unique`        | boolean | Whether the value must be unique (optional)  |
+| `defaultValue`  | any     | Default value for the property (optional)    |
+
+#### Navigation Property Object
+
+Each navigation property describes a relationship:
+
+| Field       | Type   | Description                                                                |
+| ----------- | ------ | -------------------------------------------------------------------------- |
+| `name`      | string | Navigation property name                                                   |
+| `type`      | string | Target entity type. `Collection(EntityName)` for one-to-many relationships |
+| `reference` | array  | Array of key mappings between source and target entities (optional)        |
+
+### Use Cases for Metadata
+
+1. **API Documentation**: Generate automatic documentation for your API
+2. **Client Code Generation**: Auto-generate TypeScript/JavaScript client libraries
+3. **OData Client Tools**: Enable OData-compliant tools to discover your API structure
+4. **Validation**: Validate queries against the schema before execution
+5. **Schema Discovery**: Allow developers to explore available entities and their relationships
+
+### Example: Using Metadata Programmatically
+
+```typescript
+// Fetch and use metadata
+const response = await fetch('http://localhost:3000/$metadata');
+const metadata = await response.json();
+
+// Find all entities
+console.log(
+  'Available entities:',
+  metadata.entities.map(e => e.name),
+);
+
+// Find all properties of User entity
+const userEntity = metadata.entities.find(e => e.name === 'User');
+console.log(
+  'User properties:',
+  userEntity.properties.map(p => p.name),
+);
+
+// Find all relationships of User entity
+console.log(
+  'User relationships:',
+  userEntity.navigationProperties.map(n => n.name),
+);
+
+// Find primary keys
+console.log('User primary keys:', userEntity.keys);
 ```
 
 ## Logging Configuration
@@ -1186,13 +1622,15 @@ GET /Project?$filter=status eq 'active' and tasks/$count gt 0&$expand=tasks($fil
 
 ## API Response Format
 
-All API responses follow a consistent format with data and metadata:
+All API responses follow the OData v4 standard format with data and metadata:
 
 ### Success Response
 
 ```json
 {
-  "data": [
+  "@odata.context": "/$metadata#User",
+  "@odata.count": 1,
+  "value": [
     {
       "id": 1,
       "name": "John Doe",
@@ -1204,18 +1642,18 @@ All API responses follow a consistent format with data and metadata:
     }
   ],
   "meta": {
-    "queryExecutionTime": 85,
-    "totalExecutionTime": 120
+    "queryExecutionTime": 85
   }
 }
 ```
 
 ### Response Structure
 
-- **data**: Array of records matching the query
+- **@odata.context**: OData context URL indicating the entity type (e.g., `/$metadata#User`)
+- **@odata.count**: Total number of records returned in the response
+- **value**: Array of records matching the query
 - **meta**: Metadata about the query execution
   - `queryExecutionTime`: Time spent executing the database query (milliseconds)
-  - `totalExecutionTime`: Total time including parsing and processing (milliseconds)
 
 #### Error Response
 
@@ -1373,7 +1811,6 @@ const response = await fetch('/User?$expand=department&$filter=status eq "active
 const result = await response.json();
 
 console.log(`Query took ${result.meta.queryExecutionTime}ms`);
-console.log(`Total took ${result.meta.totalExecutionTime}ms`);
 
 // Alert if query is slow
 if (result.meta.queryExecutionTime > 500) {
