@@ -230,7 +230,7 @@ interface IAdvancedLoggerOptions {
 }
 
 interface IQueryExecutionResponse<T> {
-  '@odata.count': number;
+  '@odata.count'?: number;
   '@odata.context': string;
   value: T[] | Record<string, never>;
   meta: {

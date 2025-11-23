@@ -19,18 +19,19 @@ import { CustomUser } from './models/user';
 
 const createSchema = (app: Express, dbPath: string) => {
   const dataSource = new DataSource({
-    dialect: 'sqlite',
-    database: dbPath,
-    username: '',
-    password: '',
-    host: '',
-    port: 0,
+    dialect: 'postgres',
+    database: 'neondb',
+    username: 'neondb_owner',
+    password: 'npg_Zt7cFfnyWj5z',
+    host: 'ep-fragrant-firefly-a1lz8n2c-pooler.ap-southeast-1.aws.neon.tech',
+    port: 5432,
     pool: {
-      max: 1,
-      min: 1,
+      max: 5,
+      min: 0,
       idle: 10000,
     },
-    schema: '', // SQLite doesn't support schemas
+    schema: 'public',
+    ssl: true,
     models: [Department, CustomUser, Note, Category, Tag, Role, Permission],
   });
 

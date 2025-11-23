@@ -181,7 +181,10 @@ export class SequelizerAdaptor {
     return { formattedAttributes, relations };
   }
 
-  public async executeSelect(query: IParsedQuery) {
+  public async executeSelect(query: IParsedQuery): Promise<{
+    data: object[];
+    count?: number;
+  }> {
     try {
       const model = this.getCachedModel(query.table);
       const sequelizeQuery = this.buildSequelizeQuery(query);
@@ -190,17 +193,19 @@ export class SequelizerAdaptor {
         JSON.stringify(sequelizeQuery),
         'logDbQueryParameters',
       );
-
+      let count = undefined;
       if (query.count) {
-        const count = await model.count({
+        count = await model.count({
           where: sequelizeQuery.where,
           include: sequelizeQuery.include,
         });
-        return { count };
       }
 
       const response = await model.findAll(sequelizeQuery);
-      return response.map(item => item.toJSON());
+      return {
+        data: response.map(item => item.toJSON()),
+        count,
+      };
     } catch (error) {
       Logger.getLogger().error('Error executing query', error);
       throw error;

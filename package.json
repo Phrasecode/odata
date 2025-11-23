@@ -1,6 +1,6 @@
 {
   "name": "@phrasecode/odata",
-  "version": "1.0.0",
+  "version": "0.2.1",
   "description": "Modern OData v4 server library for Node.js with TypeScript support. Build standards-compliant REST APIs for Express, serverless AWS Lambda, Azure Functions, and Next.js API routes. Automatic query handling, metadata generation, and support for PostgreSQL, MySQL, Oracle, etc.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

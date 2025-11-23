@@ -207,7 +207,13 @@ export class DataSource {
       const convertedQuery = convertQueryParser(this.entityMap, query);
       const perfLogger = new PerfLogger();
       perfLogger.start();
-      const seq = await this.sequelizerAdaptor.executeSelect(convertedQuery);
+      const {
+        data,
+        count,
+      }: {
+        data: object[];
+        count?: number;
+      } = await this.sequelizerAdaptor.executeSelect(convertedQuery);
       const executionTime: number = perfLogger.end();
       Logger.getLogger().info(
         `Query executed: ${executionTime}ms`,
@@ -215,7 +221,7 @@ export class DataSource {
         'logDbExecutionTime',
       );
 
-      const response = parseResponse(seq as object[], baseModel, executionTime);
+      const response = parseResponse(data, baseModel, executionTime, count);
 
       return response;
     } catch (err) {
