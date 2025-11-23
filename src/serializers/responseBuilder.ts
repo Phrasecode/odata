@@ -2,25 +2,24 @@ import { Model } from '../core/model';
 import { IQueryExecutionResponse } from '../types';
 
 export const parseResponse = <T>(
-  data: object[] | { count: number },
+  data: object[],
   baseModel: typeof Model<T>,
   executionTime: number,
+  count?: number,
 ): IQueryExecutionResponse<T> => {
   const formattedData = convertObjectToModel(data, baseModel) as T[];
-  let count = 0;
-  if (Array.isArray(data)) {
-    count = data.length;
-  } else {
-    count = data.count;
-  }
+
   const response: IQueryExecutionResponse<T> = {
     '@odata.context': `/$metadata#${baseModel.getModelName()}`,
-    '@odata.count': count,
     value: formattedData,
     meta: {
       queryExecutionTime: executionTime,
     },
   };
+
+  if (count) {
+    response['@odata.count'] = count;
+  }
 
   return response;
 };

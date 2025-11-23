@@ -8,17 +8,17 @@ class TestItem extends Model<TestItem> {
     dataType: DataTypes.INTEGER,
     isPrimaryKey: true,
   })
-    itemId!: number;
+  itemId!: number;
 
   @Column({
     dataType: DataTypes.STRING,
   })
-    itemName!: string;
+  itemName!: string;
 
   @Column({
     dataType: DataTypes.BOOLEAN,
   })
-    isActive!: boolean;
+  isActive!: boolean;
 }
 
 describe('parseResponse', () => {
@@ -28,9 +28,10 @@ describe('parseResponse', () => {
         { item_id: 1, item_name: 'Item 1', is_active: true },
         { item_id: 2, item_name: 'Item 2', is_active: false },
       ];
+      const count = 5;
       const executionTime = 123.45;
 
-      const result = parseResponse(data, TestItem, executionTime);
+      const result = parseResponse(data, TestItem, executionTime, count);
 
       expect(result['@odata.context']).toBeDefined();
       expect(result['@odata.count']).toBeDefined();
@@ -43,20 +44,24 @@ describe('parseResponse', () => {
         { item_id: 1, item_name: 'Item 1', is_active: true },
         { item_id: 2, item_name: 'Item 2', is_active: false },
       ];
+      const count = 25;
       const executionTime = 100;
 
-      const result = parseResponse(data, TestItem, executionTime);
+      const result = parseResponse(data, TestItem, executionTime, count);
 
-      expect(result['@odata.count']).toBe(2);
+      expect(result['@odata.count']).toBe(count);
     });
 
-    it('should set correct count for count object', () => {
-      const data = { count: 42 };
+    it('should set correct count if not defined', () => {
+      const data = [
+        { item_id: 1, item_name: 'Item 1', is_active: true },
+        { item_id: 2, item_name: 'Item 2', is_active: false },
+      ];
       const executionTime = 50;
 
       const result = parseResponse(data, TestItem, executionTime);
 
-      expect(result['@odata.count']).toBe(42);
+      expect(result['@odata.count']).toBe(undefined);
     });
 
     it('should include execution time in meta', () => {
@@ -66,16 +71,6 @@ describe('parseResponse', () => {
       const result = parseResponse(data, TestItem, executionTime);
 
       expect(result.meta.queryExecutionTime).toBe(234.56);
-    });
-
-    it('should handle empty array', () => {
-      const data: any[] = [];
-      const executionTime = 10;
-
-      const result = parseResponse(data, TestItem, executionTime);
-
-      expect(result['@odata.count']).toBe(0);
-      expect(result.value).toEqual([]);
     });
   });
 
