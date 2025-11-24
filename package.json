@@ -37,9 +37,7 @@
     "prepublishOnly": "npm run test && npm run clean && npm run build",
     "prepack": "node scripts/pre-publish-check.js",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "release:patch": "npm version patch && npm publish --access public",
-    "release:minor": "npm version minor && npm publish --access public",
-    "release:major": "npm version major && npm publish --access public",
+    "release": "npm publish --access public",
     "test:api:all": "ts-node examples/express-app/test-runner.ts all",
     "docs": "typedoc"
   },
@@ -121,7 +119,8 @@
     }
   },
   "dependencies": {
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "tslib": "^2.6.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -130,12 +129,12 @@
     "@types/jest": "^29.5.2",
     "@types/node": "^20.3.1",
     "@types/supertest": "^2.0.12",
-    "@typescript-eslint/eslint-plugin": "^5.59.11",
-    "@typescript-eslint/parser": "^5.59.11",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
-    "eslint": "^8.42.0",
+    "eslint": "^9.39.1",
     "express": "^4.18.2",
     "jest": "^29.5.0",
     "nodemon": "^3.0.1",
