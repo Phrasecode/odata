@@ -11,8 +11,7 @@ import { TableOptions } from '../types';
  * ```typescript
  * @Table({
  *   tableName: 'users',
- *   underscored: true,
- *   timestamps: true
+ *   underscored: true
  * })
  * class User extends Model<User> {
  *   @Column({ dataType: DataTypes.INTEGER, isPrimaryKey: true })
@@ -35,7 +34,6 @@ export function Table(options?: TableOptions): ClassDecorator {
     const metadata = {
       tableName: options?.tableName,
       underscored: options?.underscored ?? false,
-      timestamps: options?.timestamps ?? false,
     };
 
     if (typeof target.setTableMetadata === 'function') {

@@ -9,8 +9,7 @@ import { Model } from '../core';
  * ```typescript
  * @Table({
  *   tableName: 'users',
- *   underscored: true,
- *   timestamps: true
+ *   underscored: true
  * })
  * class User extends Model<User> { }
  * ```
@@ -20,8 +19,6 @@ export interface TableOptions {
   tableName?: string;
   /** Convert camelCase property names to snake_case column names. Default: false */
   underscored?: boolean;
-  /** Automatically add createdAt and updatedAt columns. Default: false */
-  timestamps?: boolean;
 }
 
 /**
@@ -93,10 +90,6 @@ export interface TableMetadata {
   /** Actual table name in the database */
   tableIdentifier: string;
   /** Table-level options */
-  options: {
-    /** Whether timestamps are enabled */
-    timestamps?: boolean;
-  };
 }
 
 /**
