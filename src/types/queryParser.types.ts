@@ -59,25 +59,6 @@ interface FilterClause {
   logicalOperator: 'and' | 'or' | 'not';
   conditions: (FilterCondition | FilterClause)[];
 }
-const a = {
-  logicalOperator: 'and',
-  conditions: [
-    {
-      leftExpression: {
-        type: 'field',
-        field: {
-          name: 'status',
-          table: 'User',
-        },
-      },
-      operator: 'eq',
-      rightExpression: {
-        type: 'literal',
-        value: 'active',
-      },
-    },
-  ],
-};
 
 /**
  * Represents a single filter condition

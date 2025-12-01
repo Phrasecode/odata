@@ -58,7 +58,7 @@ const createSchema = (app: Express, dbPath: string) => {
     ],
     dataSource,
     logger: {
-      enabled: true,
+      enabled: false,
       logLevel: 'ERROR',
       format: 'JSON',
       advancedOptions: {

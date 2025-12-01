@@ -699,108 +699,108 @@ export const query90_ultimateComplexQuery =
 export const allQueries = {
   // Basic queries
   query1_activeUsers,
-  // query2_usersByDepartment,
-  // query3_departments,
+  query2_usersByDepartment,
+  query3_departments,
 
-  // // Expansion queries
-  // query4_usersWithDepartment,
-  // query5_departmentsWithUsers,
-  // query6_notesWithRelations,
-  // query7_categoriesWithDetails,
+  // Expansion queries
+  query4_usersWithDepartment,
+  query5_departmentsWithUsers,
+  query6_notesWithRelations,
+  query7_categoriesWithDetails,
 
-  // // Complex filtering
-  // query8_pinnedNotes,
-  // query9_recentUsers,
-  // query10_searchNotes,
-  // query11_categoriesByCreator,
-  // query12_complexUserFilter,
+  // Complex filtering
+  query8_pinnedNotes,
+  query9_recentUsers,
+  query10_searchNotes,
+  query11_categoriesByCreator,
+  query12_complexUserFilter,
 
-  // // Nested expansion
-  // query13_departmentsWithUserNotes,
-  // query14_usersFullProfile,
-  // query15_categoriesDeepExpand,
-  // query16_notesFullContext,
+  // Nested expansion
+  query13_departmentsWithUserNotes,
+  query14_usersFullProfile,
+  query15_categoriesDeepExpand,
+  query16_notesFullContext,
 
-  // // Ordering and pagination
-  // query17_latestNotesPaginated,
-  // query18_usersMultiSort,
-  // query19_topCategories,
-  // query20_departmentsOrdered,
+  // Ordering and pagination
+  query17_latestNotesPaginated,
+  query18_usersMultiSort,
+  query19_topCategories,
+  query20_departmentsOrdered,
 
-  // // Advanced filtering
-  // query21_advancedNoteSearch,
-  // query22_usersByEmailDomain,
-  // query23_complexCategoryFilter,
-  // query24_notesDateRange,
-  // query25_usersNullChecks,
+  // Advanced filtering
+  query21_advancedNoteSearch,
+  query22_usersByEmailDomain,
+  query23_complexCategoryFilter,
+  query24_notesDateRange,
+  query25_usersNullChecks,
 
-  // // Role and permission queries
-  // query26_allRoles,
-  // query27_allPermissions,
-  // query28_roleByName,
-  // query29_permissionsByKeyword,
+  // Role and permission queries
+  query26_allRoles,
+  query27_allPermissions,
+  query28_roleByName,
+  query29_permissionsByKeyword,
 
-  // // Tag queries
-  // query30_allTags,
-  // query31_searchTags,
+  // Tag queries
+  query30_allTags,
+  query31_searchTags,
 
-  // // Combined complex queries
-  // query32_dashboardActiveUsers,
-  // query33_pinnedNotesManagement,
-  // query34_categoryAnalytics,
-  // query36_userActivityReport,
-  // query37_globalNoteSearch,
-  // query38_recentActivity,
-  // query39_activeCategoryUsage,
-  // query40_comprehensiveUserProfile,
-  // query41_trim,
+  // Combined complex queries
+  query32_dashboardActiveUsers,
+  query33_pinnedNotesManagement,
+  query34_categoryAnalytics,
+  query36_userActivityReport,
+  query37_globalNoteSearch,
+  query38_recentActivity,
+  query39_activeCategoryUsage,
+  query40_comprehensiveUserProfile,
+  query41_trim,
 
-  // // Advanced string manipulation
-  // query42_usernameMatchesEmailPrefix,
-  // query43_notesLengthComparison,
-  // query44_categoryNameInDescription,
-  // query45_usersByEmailDomain,
-  // query46_titleCategoryPrefix,
-  // query47_fullNameSearch,
-  // query48_lengthMatchAcrossRelations,
-  // query49_contentContainsTitle,
-  // query50_emailStartsWithUsername,
+  // Advanced string manipulation
+  query42_usernameMatchesEmailPrefix,
+  query43_notesLengthComparison,
+  query44_categoryNameInDescription,
+  query45_usersByEmailDomain,
+  query46_titleCategoryPrefix,
+  query47_fullNameSearch,
+  query48_lengthMatchAcrossRelations,
+  query49_contentContainsTitle,
+  query50_emailStartsWithUsername,
 
-  // // Advanced date and time functions
-  // // query51_userNoteYearMatch,
-  // // query52_weekendNotes,
-  // // query53_q1Categories,
-  // // query54_sameMonthCreation,
-  // // query55_quicklyUpdatedNotes,
-  // // query56_leapYearUsers,
-  // // query57_oldButRecentlyUpdated,
-  // // query58_sameDayOfMonth,
-  // // query59_evenMonthUsers,
-  // // query60_crossYearUpdates,
+  // Advanced date and time functions
+  // query51_userNoteYearMatch,
+  // query52_weekendNotes,
+  // query53_q1Categories,
+  // query54_sameMonthCreation,
+  // query55_quicklyUpdatedNotes,
+  // query56_leapYearUsers,
+  // query57_oldButRecentlyUpdated,
+  // query58_sameDayOfMonth,
+  // query59_evenMonthUsers,
+  // query60_crossYearUpdates,
 
-  // // Lambda expressions
-  // // query61_allNotesPinned,
-  // // query62_allUsersActive,
-  // // query63_multipleNoteAuthors,
-  // // query64_notesAndCategoriesCreator,
-  // // query65_activeUsersWithNotes,
-  // // query66_activeCategoryCreatorNotes,
-  // // query67_multiCategoryUsers,
-  // // query68_pinnedOrArchivedNotes,
-  // // query69_multiCategoryDepartments,
+  // Lambda expressions
+  // query61_allNotesPinned,
+  // query62_allUsersActive,
+  // query63_multipleNoteAuthors,
+  // query64_notesAndCategoriesCreator,
+  // query65_activeUsersWithNotes,
+  // query66_activeCategoryCreatorNotes,
+  // query67_multiCategoryUsers,
+  // query68_pinnedOrArchivedNotes,
+  // query69_multiCategoryDepartments,
 
-  // // Complex math operations
-  // query70_notesButNoCategories,
-  // query71_titleHalfContent,
-  // query72_combinedLengthCheck,
-  // query73_categoryNoteLengthAnalysis,
-  // query74_everyThirdUser,
-  // query75_noteIdRange,
-  // query76_departmentIdPlusCount,
-  // query77_fullNameLengthMultiple,
-  // query78_contentToTitleRatio,
-  // // query79_categoryIdTimesCount, --error
-  // query80_evenOddIds,
+  // Complex math operations
+  query70_notesButNoCategories,
+  query71_titleHalfContent,
+  query72_combinedLengthCheck,
+  query73_categoryNoteLengthAnalysis,
+  query74_everyThirdUser,
+  query75_noteIdRange,
+  query76_departmentIdPlusCount,
+  query77_fullNameLengthMultiple,
+  query78_contentToTitleRatio,
+  // query79_categoryIdTimesCount, --error
+  query80_evenOddIds,
 
   // Deep and wide expansion
   // query81_fiveLevelExpansion,
