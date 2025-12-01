@@ -39,8 +39,7 @@ interface IColumnData {
  * ```typescript
  * @Table({
  *   tableName: 'users',
- *   underscored: true,
- *   timestamps: true
+ *   underscored: true
  * })
  * class User extends Model<User> {
  *   @Column({
@@ -140,9 +139,6 @@ export class Model<T = any> {
     const tableMetadata = {
       modelName: this.name,
       tableIdentifier: this.getIdentifier(this.name, this.tableMetadata?.tableName),
-      options: {
-        timestamps: this.tableMetadata?.timestamps ?? false,
-      },
     };
 
     const columnMetadata = this.getColumnMetaData();

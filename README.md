@@ -2,6 +2,8 @@
 
 A powerful Node.js framework for building REST APIs with full OData v4 query capabilities. This framework provides a decorator-based approach to define models and automatically generates OData-compliant endpoints with advanced querying features.
 
+> 📖 **Documentation**: For complete guides, tutorials, and API reference, visit **[https://odata.phrasecode.com](https://odata.phrasecode.com)**
+
 ## Why This Package?
 
 Building REST APIs with complex querying capabilities can be time-consuming and error-prone. Traditional approaches require you to manually implement filtering, sorting, pagination, and relationship expansion for each endpoint. This package solves these problems by:
@@ -12,8 +14,6 @@ Building REST APIs with complex querying capabilities can be time-consuming and 
 - **OData v4 Compliance**: Supports standard OData query options ($filter, $select, $expand, $orderby, $top, $skip, $count) out of the box
 - **Database Agnostic**: Currently supports PostgreSQL, MySQL, SQLite, and other Sequelize-compatible databases
 - **Developer Experience**: Intuitive decorator-based API that feels natural to TypeScript developers
-
-We created this package because existing OData solutions for Node.js were either too complex, lacked TypeScript support, or were tightly coupled to specific frameworks. Our goal was to provide a modern, flexible, and developer-friendly solution that works seamlessly across different Node.js environments.
 
 ## Key Features
 
@@ -34,7 +34,7 @@ We created this package because existing OData solutions for Node.js were either
 npm install @phrasecode/odata
 ```
 
-You'll also need to install a database driver. See the [Getting Started Guide](./docs/getting-started.md#database-driver-installation) for details.
+You'll also need to install a database driver. See the [Installation Guide](https://odata.phrasecode.com/docs/installation) for details.
 
 ## Quick Start
 
@@ -91,21 +91,25 @@ app.listen(3000);
 // Metadata endpoint: GET http://localhost:3000/$metadata
 ```
 
-For more detailed examples, see the [Getting Started Guide](./docs/getting-started.md).
+For more detailed examples, see the [Quick Start Guide](https://odata.phrasecode.com/docs/quick-start).
 
 ## Documentation
 
-### 📚 Core Guides
+Full documentation is available at **[https://odata.phrasecode.com](https://odata.phrasecode.com)**
 
-- **[Getting Started](./docs/getting-started.md)** - Installation, database drivers, and quick start
-- **[Defining Models](./docs/models.md)** - Model decorators, relationships, and best practices
-- **[DataSource Configuration](./docs/datasource.md)** - Database connection and pooling setup
-- **[Integration Options](./docs/integration.md)** - Express.js, Next.js, and serverless deployments
-- **[OData Querying](./docs/querying.md)** - Complete guide to OData query syntax
-- **[Metadata Endpoint](./docs/metadata.md)** - API discovery and schema introspection
-- **[Logging Configuration](./docs/logging.md)** - Monitor database operations and performance
-- **[Best Practices](./docs/best-practices.md)** - Performance optimization and tips
-- **[Real-World Examples](./docs/examples.md)** - Industry-specific use cases and complete applications
+### 🚀 Getting Started
+
+- [Introduction](https://odata.phrasecode.com/docs/intro)
+- [Installation](https://odata.phrasecode.com/docs/installation)
+- [Quick Start](https://odata.phrasecode.com/docs/quick-start)
+- [Express.js Getting Started](https://odata.phrasecode.com/docs/getting-started/express-getting-started)
+- [Next.js Getting Started](https://odata.phrasecode.com/docs/getting-started/nextjs-getting-started)
+
+### 📚 Core Concepts
+
+- [DataSource Configuration](https://odata.phrasecode.com/docs/datasource)
+- [Defining Models](https://odata.phrasecode.com/docs/models)
+- [Controller](https://odata.phrasecode.com/docs/controller)
 
 ## Quick Reference
 
@@ -124,14 +128,12 @@ GET /User?$expand=department,orders
 # Combine multiple options
 GET /User?$filter=age gt 18&$expand=department&$select=name,email&$orderby=name asc&$top=20
 
-# Advanced: Navigation property count
-GET /Department?$filter=users/$count gt 5
+# String functions
+GET /User?$filter=contains(name, 'john') or startswith(email, 'admin')
 
-# Advanced: Arithmetic expressions
+# Arithmetic expressions
 GET /Order?$filter=((price mul quantity) sub discount) gt 1000
 ```
-
-For complete query syntax and examples, see the [OData Querying Guide](./docs/querying.md).
 
 ## Performance Tips
 
@@ -155,7 +157,7 @@ const dataSource = new DataSource({
 - Without pooling: 1000-1500ms per query
 - With pooling: 85-110ms per query
 
-See the [Best Practices Guide](./docs/best-practices.md) for more optimization tips.
+See the [Best Practices Guide](https://odata.phrasecode.com/docs/best-practices/) for more optimization tips.
 
 ## Contributing
 
@@ -167,8 +169,8 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## Support
 
-- 📖 [Documentation](./docs/)
-- 💬 [Issues](./issues.md)
+- 📖 [Documentation](https://odata.phrasecode.com)
+- 🐛 [GitHub Issues](https://github.com/phrasecode/odata/issues)
 - 📧 [Contact](./CONTACT.md)
 
 ## Related Resources

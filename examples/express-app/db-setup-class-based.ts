@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { DataSource, ExpressRouter } from '../../src';
+import { DataSource, ExpressRouter, ODataControler } from '../../src';
 import {
   CategoryController,
   DepartmentController,
@@ -7,7 +7,6 @@ import {
   PermissionController,
   RoleController,
   TagController,
-  UserController,
 } from './controllers';
 import { Category } from './models/category';
 import { Department } from './models/department';
@@ -36,7 +35,10 @@ const createSchema = (app: Express, dbPath: string) => {
   });
 
   // Initialize controllers
-  const userController = new UserController();
+  const userController = new ODataControler({
+    model: CustomUser,
+    allowedMethod: ['get'],
+  });
   const departmentController = new DepartmentController();
   const noteController = new NoteController();
   const categoryController = new CategoryController();

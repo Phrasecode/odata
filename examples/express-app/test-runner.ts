@@ -34,6 +34,7 @@ async function executeQuery(queryName: string, query: string): Promise<TestResul
         'Content-Type': 'application/json',
       },
     });
+    console.log('------response--->', response);
 
     const responseTime = Date.now() - startTime;
     const data: any = await response.json();
@@ -47,6 +48,7 @@ async function executeQuery(queryName: string, query: string): Promise<TestResul
       dataCount: Array.isArray(data?.data) ? data.data.length : undefined,
     };
   } catch (error) {
+    console.log('------error--->', error);
     const responseTime = Date.now() - startTime;
     return {
       queryName,

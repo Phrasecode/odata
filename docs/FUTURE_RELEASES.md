@@ -37,3 +37,5 @@
 11. Support for groupby, aggregate operations for analytics scenarios.
 
 12. OpenAPI/Swagger integration
+
+13. Need to implement all query options - expandDepth,selectDepth,maxTop,maxSkip
