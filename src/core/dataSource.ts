@@ -55,11 +55,7 @@ export class DataSource {
     }
     dbConfig.models.forEach((entity: typeof Model<any>) => {
       const { tableMetadata, columnMetadata } = entity.getMetadata();
-      this.sequelizerAdaptor.define(
-        tableMetadata.tableIdentifier,
-        columnMetadata,
-        tableMetadata.options,
-      );
+      this.sequelizerAdaptor.define(tableMetadata.tableIdentifier, columnMetadata);
       this.entityMap.set(tableMetadata.modelName, entity);
       this.entityNameMap.set(tableMetadata.modelName, tableMetadata.tableIdentifier);
     });
