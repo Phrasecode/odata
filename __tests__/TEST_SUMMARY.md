@@ -87,7 +87,7 @@ __tests__/
 │   ├── setup.ts
 │   ├── utils/
 │   │   ├── logger.test.ts
-│   │   └── utilFunctions.test.ts
+│   │   └── stringUtilFunctions.test.ts
 │   └── serializers/
 │       ├── metadata.test.ts
 │       ├── responseBuilder.test.ts

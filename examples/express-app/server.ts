@@ -21,8 +21,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  const dbPath = process.env.DB_PATH || 'test.db';
-  createSchema(app, dbPath);
+  createSchema(app);
   console.log(`Server listening on port ${PORT}`);
 });
 

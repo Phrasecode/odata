@@ -1,9 +1,11 @@
 import { DataSource, Model } from '../core';
+import { decodeUrl } from '../serializers/decodeUrl';
 import { QueryParser } from '../serializers/query';
-import { IOpenRouterConfig, IQueryExecutionResponse } from '../types';
-import { InternalServerError } from '../utils/error-management';
+import { ControllerEndpointInfo, IOpenRouterConfig, IQueryExecutionResponse } from '../types';
+import { InternalServerError, NotFoundError } from '../utils/error-management';
 import { Logger } from '../utils/logger';
 import { PerfLogger } from '../utils/perfLogger';
+
 /**
  * OpenRouter has capble to integrate with any framework.
  * This router supports serverless functions as well as any server framework like NextJs
@@ -33,6 +35,8 @@ import { PerfLogger } from '../utils/perfLogger';
 export class OpenRouter {
   private config: IOpenRouterConfig;
   private dataSource: DataSource;
+  private pathMapping: Record<string, typeof Model>;
+
   /**
    * Creates a new OpenRouter instance.
    *
@@ -41,6 +45,7 @@ export class OpenRouter {
   constructor(config: IOpenRouterConfig) {
     this.config = config;
     this.dataSource = config.dataSource;
+    this.pathMapping = this.formatPathMapping(config.pathMapping);
     Logger.forceSetupLogger(config.logger);
   }
 
@@ -59,34 +64,76 @@ export class OpenRouter {
    *
    * @param path - The OData query string. Example: /users?$select=name&$filter=age gt 18&$expand=articles
    * @returns Promise resolving to an array of model instances
-   *
-   *
    */
-  public queryable<T extends Model<T>>(
-    model: typeof Model<T>,
-  ): (path: string) => Promise<IQueryExecutionResponse<T>> {
-    return (path: string) => this.process(model, path);
-  }
-
-  /**
-   * Process an OData query request.
-   * @internal
-   */
-  private async process<T extends Model<T>>(
-    model: typeof Model<T>,
-    path: string,
-  ): Promise<IQueryExecutionResponse<T>> {
+  public async queryable<T extends Model<T>>(path: string): Promise<IQueryExecutionResponse<T>> {
     try {
       const perfLogger = new PerfLogger();
       perfLogger.start();
-      const queryParser = new QueryParser(path, this.dataSource, model, this.config.queryOptions);
+
+      const { path: formattedPath } = decodeUrl(path);
+      const model = this.getModelByPath(formattedPath);
+
+      const queryParser = new QueryParser(path, model, this.config.queryOptions);
       const response: IQueryExecutionResponse<T> = await this.dataSource.execute(queryParser);
+
       const executionTime = perfLogger.end();
       response.meta.totalExecutionTime = executionTime;
       return response;
     } catch (error: unknown) {
       throw new InternalServerError(
         'Error processing request',
+        { message: (error as Error).message, stack: (error as Error).stack },
+        (error as Error).stack,
+      );
+    }
+  }
+
+  /**
+   * Execute a raw SQL query and return results in OData response format.
+   * Use this for custom queries that cannot be expressed using OData syntax.
+   *
+   * @template T - The result type
+   * @param sql - The raw SQL query string with parameter placeholders ($1, $2, etc.)
+   * @param params - Array of parameter values to bind to the query
+   * @param context - Optional context string for @odata.context (defaults to '$metadata#RawQuery')
+   * @returns Promise resolving to query results in OData format
+   *
+   * @example
+   * ```typescript
+   * const response = await router.rawQueryable<User>(
+   *   'SELECT * FROM users WHERE status = $1 LIMIT $2',
+   *   ['active', 100],
+   *   'Users'
+   * );
+   * res.status(200).json(response);
+   * ```
+   */
+  public async rawQueryable<T extends Model<T>>(
+    path: string,
+    sql: string,
+    params: Record<string, unknown>,
+  ): Promise<IQueryExecutionResponse<T>> {
+    try {
+      const perfLogger = new PerfLogger();
+      perfLogger.start();
+
+      const { path: formattedPath } = decodeUrl(path);
+
+      const model = this.getModelByPath(formattedPath);
+
+      const response: IQueryExecutionResponse<T> = await this.dataSource.executeRawQuery(
+        sql,
+        params,
+        model.getModelName(),
+      );
+
+      const executionTime = perfLogger.end();
+      response.meta.totalExecutionTime = executionTime;
+
+      return response;
+    } catch (error: unknown) {
+      throw new InternalServerError(
+        'Error processing raw query',
         { message: (error as Error).message, stack: (error as Error).stack },
         (error as Error).stack,
       );
@@ -109,7 +156,46 @@ export class OpenRouter {
     return this.dataSource;
   }
 
-  public getMetaData() {
-    return this.dataSource.getMetadata();
+  public getMetaData(baseUrl?: string) {
+    const controllerEndpoints = this.buildControllerEndpointInfo();
+    return this.dataSource.getMetadata(controllerEndpoints, baseUrl);
+  }
+
+  /**
+   * Build controller endpoint information for metadata generation
+   */
+  private buildControllerEndpointInfo(): ControllerEndpointInfo[] {
+    const endpoints: ControllerEndpointInfo[] = [];
+
+    Object.entries(this.pathMapping).forEach(([path, model]) => {
+      const modelName = model.getModelName();
+      const isQueryModelType = (model as any).isCustomQuery === true;
+
+      endpoints.push({
+        modelName,
+        endpoint: path,
+        isQueryModel: isQueryModelType,
+      });
+    });
+
+    return endpoints;
+  }
+
+  private getModelByPath(route: string) {
+    const pathMapping = this.pathMapping;
+    const model = pathMapping[route];
+    if (!model) {
+      throw new NotFoundError(`Path: ${route} not registered with the model`);
+    }
+    return model;
+  }
+
+  private formatPathMapping(pathMapping: Record<string, typeof Model>) {
+    const formattedPathMapping: Record<string, typeof Model> = {};
+    Object.keys(pathMapping).map(key => {
+      const { fullPath } = decodeUrl(key);
+      formattedPathMapping[fullPath] = pathMapping[key];
+    });
+    return formattedPathMapping;
   }
 }

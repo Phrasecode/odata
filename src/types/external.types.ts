@@ -1,5 +1,6 @@
 import {
   ColumnOptions,
+  CustomControllerEvent,
   DataTypes,
   Dialect,
   ExpandClause,
@@ -11,12 +12,14 @@ import {
   IOpenRouterConfig,
   IParsedQuery,
   PoolOptions,
+  QueryControllerEvent,
   RelationOptions,
   TableOptions,
 } from '.';
 
 export {
   ColumnOptions,
+  CustomControllerEvent,
   DataTypes,
   Dialect,
   ExpandClause,
@@ -28,6 +31,7 @@ export {
   IOpenRouterConfig,
   IParsedQuery,
   PoolOptions,
+  QueryControllerEvent,
   RelationOptions,
   TableOptions,
 };
