@@ -5,3 +5,4 @@ export { Permission } from './permission';
 export { Role } from './role';
 export { Tag } from './tag';
 export { CustomUser } from './user';
+export { UserRole } from './userRole';

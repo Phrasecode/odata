@@ -1,0 +1,169 @@
+{
+  "$Version": "4.0",
+  "$EntityContainer": "OData.Container",
+  "entities": {
+    "User": {
+      "$Kind": "EntityType",
+      "$Key": ["id"],
+      "$Endpoint": "/user",
+      "id": {
+        "$Kind": "Property",
+        "$Type": "Edm.Int32",
+        "$Nullable": false
+      },
+      "name": {
+        "$Kind": "Property",
+        "$Type": "Edm.String",
+        "$Nullable": false
+      },
+      "email": {
+        "$Kind": "Property",
+        "$Type": "Edm.String",
+        "$Nullable": true
+      },
+      "status": {
+        "$Kind": "Property",
+        "$Type": "Edm.String",
+        "$Nullable": true
+      },
+      "createdAt": {
+        "$Kind": "Property",
+        "$Type": "Edm.DateTimeOffset",
+        "$Nullable": true
+      },
+      "orders": {
+        "$Kind": "NavigationProperty",
+        "$Type": "Collection(Order)",
+        "$ReferentialConstraint": {
+          "id": "Order/userId"
+        }
+      },
+      "department": {
+        "$Kind": "NavigationProperty",
+        "$Type": "Department",
+        "$ReferentialConstraint": {
+          "departmentId": "Department/id"
+        }
+      }
+    },
+    "Order": {
+      "$Kind": "EntityType",
+      "$Key": ["id"],
+      "$Endpoint": "/order",
+      "id": {
+        "$Kind": "Property",
+        "$Type": "Edm.Int32",
+        "$Nullable": false
+      },
+      "userId": {
+        "$Kind": "Property",
+        "$Type": "Edm.Int32",
+        "$Nullable": false
+      },
+      "amount": {
+        "$Kind": "Property",
+        "$Type": "Edm.Decimal",
+        "$Nullable": false
+      },
+      "status": {
+        "$Kind": "Property",
+        "$Type": "Edm.String",
+        "$Nullable": true
+      },
+      "createdAt": {
+        "$Kind": "Property",
+        "$Type": "Edm.DateTimeOffset",
+        "$Nullable": true
+      },
+      "user": {
+        "$Kind": "NavigationProperty",
+        "$Type": "User",
+        "$ReferentialConstraint": {
+          "userId": "User/id"
+        }
+      }
+    },
+    "Department": {
+      "$Kind": "EntityType",
+      "$Key": ["id"],
+      "$Endpoint": "/department",
+      "id": {
+        "$Kind": "Property",
+        "$Type": "Edm.Int32",
+        "$Nullable": false
+      },
+      "name": {
+        "$Kind": "Property",
+        "$Type": "Edm.String",
+        "$Nullable": false
+      },
+      "description": {
+        "$Kind": "Property",
+        "$Type": "Edm.String",
+        "$Nullable": true
+      },
+      "employees": {
+        "$Kind": "NavigationProperty",
+        "$Type": "Collection(User)",
+        "$ReferentialConstraint": {
+          "id": "User/departmentId"
+        }
+      }
+    }
+  },
+  "functions": {
+    "GetActiveUsersWithStats": {
+      "$Kind": "QueryModel",
+      "resultModel": "UserOrder",
+      "$Endpoint": "/user/user-order",
+      "properties": {
+        "id": {
+          "$Type": "Edm.Int32",
+          "$Nullable": false
+        },
+        "name": {
+          "$Type": "Edm.String"
+        },
+        "email": {
+          "$Type": "Edm.String"
+        },
+        "orderCount": {
+          "$Type": "Edm.Int32"
+        },
+        "totalSpent": {
+          "$Type": "Edm.Decimal"
+        }
+      }
+    },
+    "GetTopProducts": {
+      "$Kind": "QueryModel",
+      "resultModel": "Product",
+      "$Endpoint": "/product/top",
+      "properties": {
+        "id": {
+          "$Type": "Edm.Int32",
+          "$Nullable": false
+        },
+        "name": {
+          "$Type": "Edm.String"
+        },
+        "price": {
+          "$Type": "Edm.Decimal"
+        },
+        "orderCount": {
+          "$Type": "Edm.Int32"
+        },
+        "revenue": {
+          "$Type": "Edm.Decimal"
+        }
+      }
+    }
+  },
+  "metadata": {
+    "title": "OData API",
+    "baseUrl": "http://localhost:3000",
+    "generatedAt": "2024-12-07T10:30:00Z",
+    "format": "CSDL+JSON",
+    "$Endpoint": "/$metadata"
+  }
+}

@@ -22,7 +22,7 @@ __tests__/
 │   ├── setup.ts            # Unit test setup
 │   ├── utils/              # Tests for utility functions
 │   │   ├── logger.test.ts
-│   │   └── utilFunctions.test.ts
+│   │   └── stringUtilFunctions.test.ts
 │   └── serializers/        # Tests for serializer modules
 │       ├── metadata.test.ts         # Metadata generation tests
 │       ├── responseBuilder.test.ts  # Response builder tests

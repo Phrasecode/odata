@@ -1,6 +1,6 @@
-import { convertStringToSnakeCase } from '../../../src/utils/utilFunctions';
+import { convertStringToSnakeCase } from '../../../src/utils/stringUtilFunctions';
 
-describe('utilFunctions', () => {
+describe('stringUtilFunctions', () => {
   describe('convertStringToSnakeCase', () => {
     it('should convert camelCase to snake_case', () => {
       expect(convertStringToSnakeCase('camelCase')).toBe('camel_case');
@@ -45,4 +45,3 @@ describe('utilFunctions', () => {
     });
   });
 });
-

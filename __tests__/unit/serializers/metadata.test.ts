@@ -1,5 +1,5 @@
 import { BelongsTo, Column, DataTypes, HasMany, Model, Table } from '../../../src';
-import { generateMetadata } from '../../../src/serializers/metadata';
+import { generateMetadata, mapToEdmType } from '../../../src/serializers/metadata';
 
 // Test models
 @Table({ tableName: 'test_users', underscored: true })
@@ -9,30 +9,30 @@ class TestUser extends Model<TestUser> {
     isPrimaryKey: true,
     isAutoIncrement: true,
   })
-    id!: number;
+  id!: number;
 
   @Column({
     dataType: DataTypes.STRING,
     isNullable: false,
   })
-    username!: string;
+  username!: string;
 
   @Column({
     dataType: DataTypes.STRING,
     isUnique: true,
   })
-    email!: string;
+  email!: string;
 
   @Column({
     dataType: DataTypes.BOOLEAN,
     defaultValue: true,
   })
-    isActive!: boolean;
+  isActive!: boolean;
 
   @HasMany(() => TestPost, {
     relation: [{ foreignKey: 'userId', sourceKey: 'id' }],
   })
-    posts!: TestPost[];
+  posts!: TestPost[];
 }
 
 @Table({ tableName: 'test_posts', underscored: true })
@@ -42,28 +42,28 @@ class TestPost extends Model<TestPost> {
     isPrimaryKey: true,
     isAutoIncrement: true,
   })
-    id!: number;
+  id!: number;
 
   @Column({
     dataType: DataTypes.STRING,
     isNullable: false,
   })
-    title!: string;
+  title!: string;
 
   @Column({
     dataType: DataTypes.TEXT,
   })
-    content!: string;
+  content!: string;
 
   @Column({
     dataType: DataTypes.INTEGER,
   })
-    userId!: number;
+  userId!: number;
 
   @BelongsTo(() => TestUser, {
     relation: [{ foreignKey: 'id', sourceKey: 'userId' }],
   })
-    user!: TestUser;
+  user!: TestUser;
 }
 
 @Table({ tableName: 'simple_tags' })
@@ -72,102 +72,118 @@ class SimpleTag extends Model<SimpleTag> {
     dataType: DataTypes.INTEGER,
     isPrimaryKey: true,
   })
-    tagId!: number;
+  tagId!: number;
 
   @Column({
     dataType: DataTypes.STRING,
   })
-    tagName!: string;
+  tagName!: string;
 }
 
 describe('generateMetadata', () => {
-  describe('Basic metadata generation', () => {
-    it('should generate metadata for empty entity map', () => {
-      const result = generateMetadata(new Map());
-      expect(result).toEqual({
-        entities: [],
-      });
-    });
-
-    it('should generate metadata for single entity without relations', () => {
+  describe('OData v4 CSDL+JSON format', () => {
+    it('should generate metadata with correct version and container', () => {
       const entityMap = new Map();
       entityMap.set('SimpleTag', SimpleTag);
 
       const result = generateMetadata(entityMap);
 
-      expect(result.entities).toHaveLength(1);
-      expect(result.entities[0].name).toBe('SimpleTag');
-      expect(result.entities[0].keys).toEqual(['tagId']);
-      expect(result.entities[0].properties).toHaveLength(2);
+      expect(result.$Version).toBe('4.0');
+      expect(result.$EntityContainer).toBe('OData.Container');
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata.format).toBe('CSDL+JSON');
+      expect(result.metadata.$Endpoint).toBe('/$metadata');
     });
 
-    it('should generate correct property metadata', () => {
+    it('should generate metadata info section', () => {
       const entityMap = new Map();
       entityMap.set('SimpleTag', SimpleTag);
 
-      const result = generateMetadata(entityMap);
-      const entity = result.entities[0];
+      const result = generateMetadata(entityMap, [], 'http://localhost:3000');
 
-      const tagIdProp = entity.properties.find(p => p.name === 'tagId');
-      expect(tagIdProp).toMatchObject({
-        name: 'tagId',
-        type: expect.any(String),
-        nullable: true,
-        primaryKey: true,
-      });
-
-      const tagNameProp = entity.properties.find(p => p.name === 'tagName');
-      expect(tagNameProp).toMatchObject({
-        name: 'tagName',
-        type: expect.any(String),
-        nullable: true,
-      });
+      expect(result.metadata.title).toBe('OData API');
+      expect(result.metadata.baseUrl).toBe('http://localhost:3000');
+      expect(result.metadata.generatedAt).toBeDefined();
     });
   });
 
-  describe('Property attributes', () => {
-    it('should include autoIncrement flag when set', () => {
+  describe('Entity generation', () => {
+    it('should generate entity with correct structure', () => {
       const entityMap = new Map();
-      entityMap.set('TestUser', TestUser);
+      entityMap.set('SimpleTag', SimpleTag);
 
       const result = generateMetadata(entityMap);
-      const entity = result.entities[0];
-      const idProp = entity.properties.find(p => p.name === 'id');
 
-      expect(idProp?.autoIncrement).toBe(true);
+      expect(result.entities.SimpleTag).toBeDefined();
+      expect(result.entities.SimpleTag.$Kind).toBe('EntityType');
+      expect(result.entities.SimpleTag.$Key).toEqual(['tagId']);
+      expect(result.entities.SimpleTag.$Endpoint).toBe('/simpletag');
     });
 
-    it('should include unique flag when set', () => {
+    it('should use custom endpoint from controller info', () => {
       const entityMap = new Map();
-      entityMap.set('TestUser', TestUser);
+      entityMap.set('SimpleTag', SimpleTag);
+
+      const result = generateMetadata(entityMap, [
+        { modelName: 'SimpleTag', endpoint: '/tags', isQueryModel: false },
+      ]);
+
+      expect(result.entities.SimpleTag.$Endpoint).toBe('/tags');
+    });
+  });
+
+  describe('Property generation', () => {
+    it('should generate properties with OData types', () => {
+      const entityMap = new Map();
+      entityMap.set('SimpleTag', SimpleTag);
 
       const result = generateMetadata(entityMap);
-      const entity = result.entities[0];
-      const emailProp = entity.properties.find(p => p.name === 'email');
+      const entity = result.entities.SimpleTag;
 
-      expect(emailProp?.unique).toBe(true);
+      expect(entity.tagId).toMatchObject({
+        $Kind: 'Property',
+        $Type: 'Edm.Int32',
+        $Nullable: true,
+      });
+
+      expect(entity.tagName).toMatchObject({
+        $Kind: 'Property',
+        $Type: 'Edm.String',
+        $Nullable: true,
+      });
     });
 
-    it('should include defaultValue when set', () => {
+    it('should include $AutoIncrement when set', () => {
       const entityMap = new Map();
       entityMap.set('TestUser', TestUser);
 
       const result = generateMetadata(entityMap);
-      const entity = result.entities[0];
-      const isActiveProp = entity.properties.find(p => p.name === 'isActive');
+      const entity = result.entities.TestUser;
+      const idProp = entity.id as any;
 
-      expect(isActiveProp?.defaultValue).toBe(true);
+      expect(idProp.$AutoIncrement).toBe(true);
     });
 
-    it('should set nullable correctly', () => {
+    it('should include $DefaultValue when set', () => {
       const entityMap = new Map();
       entityMap.set('TestUser', TestUser);
 
       const result = generateMetadata(entityMap);
-      const entity = result.entities[0];
-      const usernameProp = entity.properties.find(p => p.name === 'username');
+      const entity = result.entities.TestUser;
+      const isActiveProp = entity.isActive as any;
 
-      expect(usernameProp?.nullable).toBe(false);
+      expect(isActiveProp.$DefaultValue).toBe(true);
+    });
+
+    it('should set $Nullable correctly', () => {
+      const entityMap = new Map();
+      entityMap.set('TestUser', TestUser);
+
+      const result = generateMetadata(entityMap);
+      const entity = result.entities.TestUser;
+      const usernameProp = entity.username as any;
+
+      expect(usernameProp.$Nullable).toBe(false);
     });
   });
 
@@ -178,13 +194,11 @@ describe('generateMetadata', () => {
       entityMap.set('TestPost', TestPost);
 
       const result = generateMetadata(entityMap);
-      const userEntity = result.entities.find(e => e.name === 'TestUser');
+      const userEntity = result.entities.TestUser;
 
-      expect(userEntity?.navigationProperties).toBeDefined();
-      expect(userEntity?.navigationProperties).toHaveLength(1);
-      expect(userEntity?.navigationProperties![0]).toMatchObject({
-        name: 'posts',
-        type: 'Collection(TestPost)',
+      expect(userEntity.posts).toMatchObject({
+        $Kind: 'NavigationProperty',
+        $Type: 'Collection(TestPost)',
       });
     });
 
@@ -194,41 +208,25 @@ describe('generateMetadata', () => {
       entityMap.set('TestPost', TestPost);
 
       const result = generateMetadata(entityMap);
-      const postEntity = result.entities.find(e => e.name === 'TestPost');
+      const postEntity = result.entities.TestPost;
 
-      expect(postEntity?.navigationProperties).toBeDefined();
-      expect(postEntity?.navigationProperties).toHaveLength(1);
-      expect(postEntity?.navigationProperties![0]).toMatchObject({
-        name: 'user',
-        type: 'TestUser',
+      expect(postEntity.user).toMatchObject({
+        $Kind: 'NavigationProperty',
+        $Type: 'TestUser',
       });
     });
 
-    it('should include reference information in navigation properties', () => {
+    it('should include $ReferentialConstraint in navigation properties', () => {
       const entityMap = new Map();
       entityMap.set('TestUser', TestUser);
       entityMap.set('TestPost', TestPost);
 
       const result = generateMetadata(entityMap);
-      const userEntity = result.entities.find(e => e.name === 'TestUser');
-      const navProp = userEntity?.navigationProperties![0];
+      const userEntity = result.entities.TestUser;
+      const postsNav = userEntity.posts as any;
 
-      expect(navProp?.reference).toBeDefined();
-      expect(navProp?.reference).toHaveLength(1);
-      expect(navProp?.reference![0]).toMatchObject({
-        sourceKey: 'id',
-        targetKey: 'userId',
-      });
-    });
-
-    it('should not include navigationProperties if entity has no relations', () => {
-      const entityMap = new Map();
-      entityMap.set('SimpleTag', SimpleTag);
-
-      const result = generateMetadata(entityMap);
-      const entity = result.entities[0];
-
-      expect(entity.navigationProperties).toBeUndefined();
+      expect(postsNav.$ReferentialConstraint).toBeDefined();
+      expect(postsNav.$ReferentialConstraint.id).toBe('TestPost/userId');
     });
   });
 
@@ -241,24 +239,73 @@ describe('generateMetadata', () => {
 
       const result = generateMetadata(entityMap);
 
-      expect(result.entities).toHaveLength(3);
-      expect(result.entities.map(e => e.name)).toContain('TestUser');
-      expect(result.entities.map(e => e.name)).toContain('TestPost');
-      expect(result.entities.map(e => e.name)).toContain('SimpleTag');
+      expect(Object.keys(result.entities)).toHaveLength(3);
+      expect(result.entities.TestUser).toBeDefined();
+      expect(result.entities.TestPost).toBeDefined();
+      expect(result.entities.SimpleTag).toBeDefined();
     });
+  });
 
-    it('should generate correct keys for each entity', () => {
+  describe('Query methods as functions', () => {
+    it('should add query methods to functions section', () => {
       const entityMap = new Map();
       entityMap.set('TestUser', TestUser);
-      entityMap.set('TestPost', TestPost);
 
-      const result = generateMetadata(entityMap);
+      const result = generateMetadata(entityMap, [
+        {
+          modelName: 'TestUser',
+          endpoint: '/user',
+          isQueryModel: false,
+          queryMethods: [{ methodName: 'getActiveUsers', endpoint: '/active', httpMethod: 'get' }],
+        },
+      ]);
 
-      const userEntity = result.entities.find(e => e.name === 'TestUser');
-      const postEntity = result.entities.find(e => e.name === 'TestPost');
-
-      expect(userEntity?.keys).toEqual(['id']);
-      expect(postEntity?.keys).toEqual(['id']);
+      expect(result.functions).toBeDefined();
+      expect(result.functions!.TestUser_getActiveUsers).toBeDefined();
+      expect(result.functions!.TestUser_getActiveUsers.$Kind).toBe('QueryModel');
+      expect(result.functions!.TestUser_getActiveUsers.$Endpoint).toBe('/user/active');
     });
+  });
+});
+
+describe('mapToEdmType', () => {
+  it('should map INTEGER to Edm.Int32', () => {
+    expect(mapToEdmType('INTEGER')).toBe('Edm.Int32');
+    expect(mapToEdmType('INT')).toBe('Edm.Int32');
+  });
+
+  it('should map BIGINT to Edm.Int64', () => {
+    expect(mapToEdmType('BIGINT')).toBe('Edm.Int64');
+  });
+
+  it('should map DECIMAL to Edm.Decimal', () => {
+    expect(mapToEdmType('DECIMAL')).toBe('Edm.Decimal');
+    expect(mapToEdmType('NUMERIC')).toBe('Edm.Decimal');
+  });
+
+  it('should map BOOLEAN to Edm.Boolean', () => {
+    expect(mapToEdmType('BOOLEAN')).toBe('Edm.Boolean');
+    expect(mapToEdmType('BOOL')).toBe('Edm.Boolean');
+  });
+
+  it('should map DATE to Edm.Date', () => {
+    expect(mapToEdmType('DATE')).toBe('Edm.Date');
+  });
+
+  it('should map DATETIME to Edm.DateTimeOffset', () => {
+    expect(mapToEdmType('DATETIME')).toBe('Edm.DateTimeOffset');
+    expect(mapToEdmType('TIMESTAMP')).toBe('Edm.DateTimeOffset');
+  });
+
+  it('should map VARCHAR/TEXT to Edm.String', () => {
+    expect(mapToEdmType('VARCHAR(255)')).toBe('Edm.String');
+    expect(mapToEdmType('TEXT')).toBe('Edm.String');
+    expect(mapToEdmType('CHAR')).toBe('Edm.String');
+  });
+
+  it('should map FLOAT/DOUBLE to Edm.Double', () => {
+    expect(mapToEdmType('FLOAT')).toBe('Edm.Double');
+    expect(mapToEdmType('DOUBLE')).toBe('Edm.Double');
+    expect(mapToEdmType('REAL')).toBe('Edm.Double');
   });
 });
