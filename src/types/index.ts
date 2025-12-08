@@ -1,9 +1,12 @@
-import { DataSource, Model, ODataControler } from '../core';
+import { BaseControler } from '../controller';
+import { DataSource, Model } from '../core';
+import { EndpointNamingConvention } from '../utils/constant';
 import { LOG_FORMATS, LOG_LEVELS } from '../utils/logger';
 import { IQueryParseOptions } from './queryParser.types';
 
 export * from './entitySchema.types';
 export * from './model.types';
+export * from './queryDecorator.types';
 export * from './queryParser.types';
 
 /**
@@ -134,7 +137,7 @@ interface IControllerConfig {
  */
 interface IExpressRouterConfig {
   /** Array of OData controllers to register */
-  controllers: ODataControler[];
+  controllers: BaseControler[];
   /** DataSource instance for database operations */
   dataSource: DataSource;
   /** Options for logging */
@@ -147,6 +150,7 @@ interface IExpressRouterConfig {
    * }
    */
   queryOptions?: IQueryParseOptions;
+  endpointNamingConvention?: EndpointNamingConvention;
 }
 
 /**
@@ -175,6 +179,7 @@ interface IOpenRouterConfig {
    * }
    */
   queryOptions?: IQueryParseOptions;
+  pathMapping: Record<string, typeof Model>;
 }
 
 /**
@@ -239,37 +244,107 @@ interface IQueryExecutionResponse<T> {
   };
 }
 
-interface MetaData {
-  entities: MetaDataEntity[];
+/**
+ * OData v4 CSDL+JSON metadata format
+ */
+interface ODataMetadata {
+  $Version: string;
+  $EntityContainer: string;
+  entities: Record<string, ODataEntityType>;
+  functions?: Record<string, ODataFunction>;
+  metadata: ODataMetadataInfo;
 }
 
-interface MetaDataEntity {
-  name: string;
-  properties: MetaDataEntityProperty[];
-  keys: string[];
-  navigationProperties?: MetaDataEntityRelation[];
+/**
+ * OData Entity Type definition
+ */
+interface ODataEntityType {
+  $Kind: 'EntityType';
+  $Key: string[];
+  $Endpoint: string;
+  [propertyName: string]: ODataProperty | ODataNavigationProperty | string | string[];
 }
 
-interface MetaDataEntityProperty {
-  name: string;
-  type: string;
-  nullable: boolean;
-  defaultValue?: any;
-  autoIncrement?: boolean;
-  unique?: boolean;
-  primaryKey?: boolean;
+/**
+ * OData Property definition
+ */
+interface ODataProperty {
+  $Kind: 'Property';
+  $Type: string;
+  $Nullable: boolean;
+  $DefaultValue?: unknown;
+  $AutoIncrement?: boolean;
 }
 
-interface MetaDataEntityRelation {
-  name: string;
-  type: string;
-  reference?: {
-    sourceKey: string;
-    targetKey: string;
-  }[];
+/**
+ * OData Navigation Property definition
+ */
+interface ODataNavigationProperty {
+  $Kind: 'NavigationProperty';
+  $Type: string;
+  $ReferentialConstraint?: Record<string, string>;
 }
+
+/**
+ * OData Function (for QueryModel endpoints)
+ */
+interface ODataFunction {
+  $Kind: 'QueryModel';
+  resultModel: string;
+  $Endpoint: string;
+  properties: Record<string, ODataFunctionProperty>;
+}
+
+/**
+ * OData Function Property
+ */
+interface ODataFunctionProperty {
+  $Type: string;
+  $Nullable?: boolean;
+}
+
+/**
+ * Metadata info section
+ */
+interface ODataMetadataInfo {
+  title: string;
+  baseUrl?: string;
+  generatedAt: string;
+  format: string;
+  $Endpoint: string;
+}
+
+/**
+ * Controller endpoint info for metadata generation
+ */
+interface ControllerEndpointInfo {
+  modelName: string;
+  endpoint: string;
+  isQueryModel: boolean;
+  queryMethods?: QueryMethodEndpointInfo[];
+}
+
+/**
+ * Query method endpoint info
+ */
+interface QueryMethodEndpointInfo {
+  methodName: string;
+  endpoint: string;
+  httpMethod: string;
+}
+
+interface QueryControllerEvent {
+  path: string;
+  basepath: string;
+  queryParams: Record<string, unknown>;
+}
+
+// Backward compatibility alias
+type CustomControllerEvent = QueryControllerEvent;
 
 export {
+  ControllerEndpointInfo,
+  CustomControllerEvent,
   Dialect,
   IAdvancedLoggerOptions,
   IControllerConfig,
@@ -279,9 +354,14 @@ export {
   IMethod,
   IOpenRouterConfig,
   IQueryExecutionResponse,
-  MetaData,
-  MetaDataEntity,
-  MetaDataEntityProperty,
-  MetaDataEntityRelation,
+  ODataEntityType,
+  ODataFunction,
+  ODataFunctionProperty,
+  ODataMetadata,
+  ODataMetadataInfo,
+  ODataNavigationProperty,
+  ODataProperty,
   PoolOptions,
+  QueryControllerEvent,
+  QueryMethodEndpointInfo,
 };

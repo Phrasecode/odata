@@ -1,5 +1,8 @@
-import { ODataControler } from './controller';
 import { DataSource } from './dataSource';
 import { Model } from './model';
+import { QueryModel } from './queryModel';
 
-export { DataSource, Model, ODataControler };
+export { DataSource, Model, QueryModel };
+
+// Backward compatibility alias
+export { QueryModel as CustomQueryModel };

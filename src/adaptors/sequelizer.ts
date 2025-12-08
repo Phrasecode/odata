@@ -212,6 +212,23 @@ export class SequelizerAdaptor {
     }
   }
 
+  public async rawQuery(
+    query: string,
+    params: Record<string, unknown>,
+  ): Promise<{
+    data: unknown[];
+  }> {
+    try {
+      const [result] = await this.sequelize.query(query, { bind: params });
+      return {
+        data: result,
+      };
+    } catch (error) {
+      Logger.getLogger().error('Error executing query', error);
+      throw error;
+    }
+  }
+
   private getCachedModel(tableName: string): SequelizeModelController {
     if (!this.modelCache.has(tableName)) {
       const model = this.sequelize.modelManager.getModel(tableName) as SequelizeModelController;

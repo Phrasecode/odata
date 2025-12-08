@@ -125,3 +125,12 @@ export const FUTUR_OPERATORS = {
   },
   ISOF: 'isof', // not implemented /Orders?$filter=isof(ShipCountry, 'Edm.String')
 };
+
+export enum EndpointNamingConvention {
+  // ModelName: ProductCategories -> Endpoint: ProductCategories
+  AS_MODEL_NAME = 'AS_MODEL_NAME',
+  // ModelName: ProductCategories -> Endpoint: productcategories
+  LOWER_CASE = 'LOWER_CASE',
+  // ModelName: ProductCategories -> Endpoint: product-categories
+  KEBAB_CASE = 'KEBAB_CASE',
+}

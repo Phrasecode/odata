@@ -1,41 +1,62 @@
-1. Core Query Options (Priority 1 - Essential)
-   - [ ] $apply
-   - [ ] $count - partialy implemented
-   - [ ] $compute
+# Future Releases
 
-2. Core Query Options (Priority 2 - Important)
-   - [ ] $search
+## Recently Completed ✅
 
-3. Core Query Options (Priority 3 - Nice to Have)
-   - [ ] $format
+- [x] **Custom SQL Queries** - `@Query` decorator for raw SQL endpoints
+- [x] **QueryModel** - Virtual models for complex query results
+- [x] **QueryController** - Controller for custom SQL-only endpoints
+- [x] **rawQueryable()** - Execute raw SQL with OData response format
+- [x] **Endpoint Naming Conventions** - KEBAB_CASE, LOWER_CASE, AS_MODEL_NAME
 
-4. Core filter operators (Priority 1 - Essential)
+## Planned Features
 
-5. Core filter operators (Priority 2 - Important)
-   - [ ] $filter - geo operators
-   - [ ] $filter - collection operators
-   - [ ] $filter - type operators
-   - [ ] $filter - lambda operators
-   - [ ] $filter - search operators
+### 1. Core Query Options (Priority 1 - Essential)
 
-6. CRUD Operations (Priority 2)
-   - [ ] POST - Create entity
-   - [ ] PATCH - Update entity (partial)
-   - [ ] PUT - Replace entity (full)
-   - [ ] DELETE - Remove entity
+- [ ] $apply
+- [ ] $count - partially implemented
+- [ ] $compute
 
-7. API authentication and authorization
-   - [ ] Authentication
-   - [ ] Authorization
+### 2. Core Query Options (Priority 2 - Important)
 
-8. API rate limiting
+- [ ] $search
 
-9. API retry logic
+### 3. Core Query Options (Priority 3 - Nice to Have)
 
-10. Delta Support
+- [ ] $format
 
-11. Support for groupby, aggregate operations for analytics scenarios.
+### 4. Core filter operators (Priority 2 - Important)
 
-12. OpenAPI/Swagger integration
+- [ ] $filter - geo operators
+- [ ] $filter - collection operators
+- [ ] $filter - type operators
+- [ ] $filter - lambda operators
+- [ ] $filter - search operators
 
-13. Need to implement all query options - expandDepth,selectDepth,maxTop,maxSkip
+### 5. CRUD Operations (Priority 2)
+
+- [ ] POST - Create entity
+- [ ] PATCH - Update entity (partial)
+- [ ] PUT - Replace entity (full)
+- [ ] DELETE - Remove entity
+
+### 6. API authentication and authorization
+
+- [ ] Authentication
+- [ ] Authorization
+
+### 7. API rate limiting
+
+### 8. API retry logic
+
+### 9. Delta Support
+
+### 10. Support for groupby, aggregate operations for analytics scenarios
+
+### 11. OpenAPI/Swagger integration
+
+### 12. Query Options Configuration
+
+- [ ] expandDepth
+- [ ] selectDepth
+- [ ] maxTop
+- [ ] maxSkip

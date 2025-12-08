@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { DataSource, ExpressRouter, ODataControler } from '../../src';
+import { DataSource, EndpointNamingConvention, ExpressRouter, ODataControler } from '../../src';
 import {
   CategoryController,
   DepartmentController,
@@ -7,31 +7,27 @@ import {
   PermissionController,
   RoleController,
   TagController,
+  UserRoleController,
 } from './controllers';
-import { Category } from './models/category';
-import { Department } from './models/department';
-import { Note } from './models/note';
-import { Permission } from './models/permission';
-import { Role } from './models/role';
-import { Tag } from './models/tag';
-import { CustomUser } from './models/user';
 
-const createSchema = (app: Express, dbPath: string) => {
+import { Category, CustomUser, Department, Note, Permission, Role, Tag, UserRole } from './models';
+
+const createSchema = (app: Express) => {
   const dataSource = new DataSource({
-    dialect: 'postgres',
-    database: 'neondb',
-    username: 'neondb_owner',
-    password: 'npg_Zt7cFfnyWj5z',
-    host: 'ep-fragrant-firefly-a1lz8n2c-pooler.ap-southeast-1.aws.neon.tech',
-    port: 5432,
+    dialect: (process.env.DB_DIALECT as any) || 'postgres',
+    database: process.env.DB_NAME || 'neondb',
+    username: process.env.DB_USER || '',
+    password: process.env.DB_PASSWORD || '',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
     pool: {
-      max: 5,
-      min: 0,
-      idle: 10000,
+      max: parseInt(process.env.DB_POOL_MAX || '5'),
+      min: parseInt(process.env.DB_POOL_MIN || '0'),
+      idle: parseInt(process.env.DB_POOL_IDLE || '10000'),
     },
-    schema: 'public',
-    ssl: true,
-    models: [Department, CustomUser, Note, Category, Tag, Role, Permission],
+    schema: process.env.DB_SCHEMA || 'public',
+    ssl: process.env.DB_SSL === 'true',
+    models: [Department, CustomUser, Note, Category, UserRole, Tag, Role, Permission],
   });
 
   // Initialize controllers
@@ -45,6 +41,7 @@ const createSchema = (app: Express, dbPath: string) => {
   const tagController = new TagController();
   const roleController = new RoleController();
   const permissionController = new PermissionController();
+  const userRoleController = new UserRoleController();
 
   new ExpressRouter(app, {
     controllers: [
@@ -55,11 +52,12 @@ const createSchema = (app: Express, dbPath: string) => {
       tagController,
       roleController,
       permissionController,
+      userRoleController,
     ],
     dataSource,
     logger: {
       enabled: false,
-      logLevel: 'ERROR',
+      logLevel: 'INFO',
       format: 'JSON',
       advancedOptions: {
         logSqlQuery: false,
@@ -67,6 +65,7 @@ const createSchema = (app: Express, dbPath: string) => {
         logDbQueryParameters: false,
       },
     },
+    endpointNamingConvention: EndpointNamingConvention.AS_MODEL_NAME,
   });
 };
 

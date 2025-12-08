@@ -19,7 +19,7 @@ The project now has a comprehensive testing setup with two types of tests:
 │   │   ├── setup.ts                # Unit test setup
 │   │   ├── utils/                  # Utility function tests
 │   │   │   ├── logger.test.ts
-│   │   │   └── utilFunctions.test.ts
+│   │   │   └── stringUtilFunctions.test.ts
 │   │   └── core/                   # Core functionality tests
 │   │       └── query/
 │   │           └── parseSelect.test.ts
@@ -68,8 +68,8 @@ npm run test:coverage          # Run all tests with coverage
 ### Unit Test Example
 
 ```typescript
-// __tests__/unit/utils/utilFunctions.test.ts
-import { convertStringToSnakeCase } from '../../../src/utils/utilFunctions';
+// __tests__/unit/utils/stringUtilFunctions.test.ts
+import { convertStringToSnakeCase } from '../../../src/utils/stringUtilFunctions';
 
 describe('convertStringToSnakeCase', () => {
   it('should convert camelCase to snake_case', () => {

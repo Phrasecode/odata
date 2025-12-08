@@ -1,6 +1,6 @@
 {
   "name": "@phrasecode/odata",
-  "version": "0.2.3",
+  "version": "0.3.1",
   "description": "Modern OData v4 server library for Node.js with TypeScript support. Build standards-compliant REST APIs for Express, serverless AWS Lambda, Azure Functions, and Next.js API routes. Automatic query handling, metadata generation, and support for PostgreSQL, MySQL, Oracle, etc.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -38,7 +38,7 @@
     "prepack": "node scripts/pre-publish-check.js",
     "check": "npm run lint && npm run typecheck && npm run test",
     "release": "npm publish --access public",
-    "test:api:all": "ts-node examples/express-app/test-runner.ts all"
+    "test:api": "ts-node examples/express-app/test-runner.ts all"
   },
   "keywords": [
     "odata",
@@ -118,6 +118,7 @@
     }
   },
   "dependencies": {
+    "qs": "^6.14.0",
     "sequelize": "^6.37.7",
     "tslib": "^2.6.0"
   },

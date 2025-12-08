@@ -2,7 +2,7 @@ import { Model } from '../core/model';
 import { IQueryExecutionResponse } from '../types';
 
 export const parseResponse = <T>(
-  data: object[],
+  data: unknown[],
   baseModel: typeof Model<T>,
   executionTime: number,
   count?: number,
