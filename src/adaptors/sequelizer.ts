@@ -589,10 +589,25 @@ export class SequelizerAdaptor {
         return `CEIL(${args[0]})`;
       case 'cast':
         // OData V4 cast(expression, type) -> SQL CAST(expression AS type)
-        // Note: The type argument in OData is a string literal, which will be quoted in expressionToSql.
-        // We need to unquote it.
-        const typeArg = args[1].replace(/^'|'$/g, '');
-        return `CAST(${args[0]} AS ${typeArg})`;
+        // Validate the type argument against a strict allowlist to prevent SQL injection.
+        const ALLOWED_CAST_TYPES = [
+          'int', 'integer', 'bigint', 'smallint', 'tinyint',
+          'float', 'real', 'double', 'double precision',
+          'decimal', 'numeric',
+          'varchar', 'char', 'text', 'nvarchar', 'nchar', 'ntext',
+          'date', 'time', 'datetime', 'datetime2', 'timestamp', 'timestamptz',
+          'boolean', 'bool', 'bit',
+          'uuid', 'guid',
+          'json', 'jsonb',
+          'binary', 'varbinary', 'blob',
+        ];
+        const rawTypeArg = args[1].replace(/^'|'$/g, '').trim().toLowerCase();
+        // Also allow types with precision like decimal(10,2) or varchar(255)
+        const baseType = rawTypeArg.replace(/\([\d,\s]+\)$/, '');
+        if (!ALLOWED_CAST_TYPES.includes(baseType)) {
+          throw new BadRequestError(`Invalid CAST type: ${rawTypeArg}. Allowed types: ${ALLOWED_CAST_TYPES.join(', ')}`);
+        }
+        return `CAST(${args[0]} AS ${rawTypeArg})`;
       default:
         throw new BadRequestError(`Unsupported function: ${func.name}`);
     }
