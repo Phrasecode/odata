@@ -330,7 +330,13 @@ export class SequelizerAdaptor {
       }
 
       const field = this.buildExpression(args[0]);
-      const searchValue = this.buildExpression(args[1]);
+      const rawSearchValue = this.buildExpression(args[1]);
+
+      // Escape LIKE wildcards in the search value to prevent wildcard injection
+      const searchValue =
+        typeof rawSearchValue === 'string'
+          ? rawSearchValue.replace(/[%_\\]/g, '\\$&')
+          : rawSearchValue;
 
       // Determine if we're checking for true or false
       const checkForTrue =
@@ -339,13 +345,13 @@ export class SequelizerAdaptor {
       let likePattern: string;
       switch (funcName) {
         case 'contains':
-          likePattern = checkForTrue ? `%${searchValue}%` : `NOT LIKE '%${searchValue}%'`;
+          likePattern = `%${searchValue}%`;
           break;
         case 'startswith':
-          likePattern = checkForTrue ? `${searchValue}%` : `NOT LIKE '${searchValue}%'`;
+          likePattern = `${searchValue}%`;
           break;
         case 'endswith':
-          likePattern = checkForTrue ? `%${searchValue}` : `NOT LIKE '%${searchValue}'`;
+          likePattern = `%${searchValue}`;
           break;
         default:
           throw new BadRequestError(`Unsupported boolean function: ${funcName}`);
@@ -354,8 +360,7 @@ export class SequelizerAdaptor {
       if (checkForTrue) {
         return where(field, Op.like, likePattern);
       } else {
-        // For negative checks, use notLike
-        return where(field, Op.notLike, likePattern.replace(/NOT LIKE '?/, ''));
+        return where(field, Op.notLike, likePattern);
       }
     }
 
