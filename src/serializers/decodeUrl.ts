@@ -10,6 +10,7 @@ interface IDecodeUrlResponse {
 export const decodeUrl = (url: string): IDecodeUrlResponse => {
   validatePath(url);
   const trimmedUrl = url.trim();
+  // Decode only once to prevent double-decoding bypass attacks
   const formatedUrl = trimmedUrl.startsWith('/')
     ? decodeURIComponent(trimmedUrl.substring(1))
     : decodeURIComponent(trimmedUrl);
@@ -19,12 +20,13 @@ export const decodeUrl = (url: string): IDecodeUrlResponse => {
   const path = urlParts[0];
   const basepath = path.split('/')[0];
 
-  const removeTailingSlash = formatedUrl.endsWith('/')
-    ? decodeURIComponent(formatedUrl.slice(0, -1))
-    : decodeURIComponent(formatedUrl);
+  // Remove trailing slash without re-decoding
+  const fullPath = formatedUrl.endsWith('/')
+    ? formatedUrl.slice(0, -1)
+    : formatedUrl;
 
   return {
-    fullPath: removeTailingSlash,
+    fullPath,
     path,
     queryParams: parse(queryParams) || {},
     basepath,
