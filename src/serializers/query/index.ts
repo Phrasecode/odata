@@ -141,7 +141,7 @@ class QueryParser {
     this.orderBy = parseOrderBy(rawSearchParams.orderBy, this.baseTableName);
     this.expand = parseExpand(rawSearchParams.expand);
     this.filter = parseFilter(rawSearchParams.filter, this.baseTableName);
-    this.top = rawSearchParams.top || this.options.defaultTop || 0;
+    this.top = rawSearchParams.top || this.options.defaultTop || 100;
     this.skip = rawSearchParams.skip || this.options.defaultSkip || 0;
     this.count = rawSearchParams.count === 'true'; // $count=true
     this.apply = parseApply(rawSearchParams.apply);

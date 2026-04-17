@@ -1,7 +1,10 @@
 import { ExpandClause } from '../../types';
+import { BadRequestError } from '../../utils/error-management';
 import { parseFilter } from './parseFilter';
 import { parseOrderBy } from './parseOrderBy';
 import { parseSelect } from './parseSelect';
+
+const MAX_EXPAND_DEPTH = 4;
 
 interface RawExpandClause {
   table: string;
@@ -12,9 +15,14 @@ interface RawExpandClause {
   type: 'inner' | 'left' | 'right';
 }
 
-const parseExpand = (query: string) => {
+const parseExpand = (query: string, depth = 0) => {
+  if (depth > MAX_EXPAND_DEPTH) {
+    throw new BadRequestError(
+      `$expand nesting exceeds maximum depth of ${MAX_EXPAND_DEPTH}`,
+    );
+  }
   const parsedData = parseExpandSimple(query);
-  const fomattedData = formatParsedData(parsedData);
+  const fomattedData = formatParsedData(parsedData, depth);
   return fomattedData;
 };
 
@@ -176,12 +184,17 @@ function parseOptions(optionsString: string): any {
   return options;
 }
 
-function formatParsedData(parsedData: RawExpandClause[]): ExpandClause[] {
+function formatParsedData(parsedData: RawExpandClause[], depth = 0): ExpandClause[] {
   return parsedData.map((item: RawExpandClause) => {
     const select = parseSelect(item.select || '', item.table);
     const filter = parseFilter(item.filter || '', item.table);
     const orderBy = parseOrderBy(item.orderBy || '', item.table);
-    const expand = item.expand ? formatParsedData(item.expand) : undefined;
+    const expand = item.expand ? formatParsedData(item.expand, depth + 1) : undefined;
+    if (expand && depth + 1 > MAX_EXPAND_DEPTH) {
+      throw new BadRequestError(
+        `$expand nesting exceeds maximum depth of ${MAX_EXPAND_DEPTH}`,
+      );
+    }
     return {
       ...item,
       select,
