@@ -377,10 +377,22 @@ export class SequelizerAdaptor {
       case 'in':
         return where(leftSide, Op.in, Array.isArray(rightSide) ? rightSide : [rightSide]);
       case 'has':
-        // OData V4 'has' operator is for enum flags.
-        // For now, we'll treat it as a bitwise AND check for integer flags.
-        // This is a simplification and might need refinement based on the actual DB schema.
-        return where(literal(`${leftSide} & ${rightSide}`), Op.eq, rightSide);
+        // OData V4 'has' operator is for enum flags (bitwise AND check).
+        // Restrict to simple field-to-integer comparisons to prevent SQL injection.
+        if (leftExpression.type !== 'field' || rightExpression.type !== 'literal') {
+          throw new BadRequestError(
+            "'has' operator only supports simple field-to-value comparisons (e.g., flags has 4)",
+          );
+        }
+        if (typeof rightSide !== 'number' || !Number.isInteger(rightSide)) {
+          throw new BadRequestError("'has' operator requires an integer right-hand value");
+        }
+        {
+          // Build safe literal using validated column name and integer value
+          const fieldName = leftExpression.field?.name || '';
+          const flagValue = Math.floor(rightSide);
+          return where(literal(`"${fieldName.replace(/"/g, '""')}" & ${flagValue}`), Op.eq, flagValue);
+        }
       default:
         // For simple field comparisons, use object notation
         if (leftExpression.type === 'field' && rightExpression.type === 'literal') {
