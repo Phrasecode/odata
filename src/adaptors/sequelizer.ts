@@ -795,7 +795,7 @@ export class SequelizerAdaptor {
         // This should have been handled above as a literal
         // But if we get here, it's a simple case
         if (args.length === 2 && typeof args[0] === 'string' && typeof args[1] === 'string') {
-          return literal(`(STRPOS('${args[0]}', '${args[1]}') - 1)`);
+          return literal(`(STRPOS(${this.escapeSqlString(args[0])}, ${this.escapeSqlString(args[1])}) - 1)`);
         }
         return fn('STRPOS', ...args);
       case 'length':
