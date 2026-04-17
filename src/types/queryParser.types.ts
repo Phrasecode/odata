@@ -1,9 +1,8 @@
 interface IQueryParseOptions {
-  defaultTop?: number;
-  defaultSkip?: number;
   expandDepth?: number;
-  selectDepth?: number;
+  /** Maximum allowed value for $top. Requests exceeding this will throw a BadRequestError. Default: 1000 */
   maxTop?: number;
+  /** Maximum allowed value for $skip. Prevents deep-paging DoS attacks. Default: 1000 */
   maxSkip?: number;
 }
 interface IRawSearchParams {

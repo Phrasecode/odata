@@ -96,15 +96,15 @@ Always paginate large datasets:
 GET /products?$top=20&$skip=0&$orderby=createdAt desc
 ```
 
-Configure defaults:
+Configure pagination limits:
 
 ```typescript
 new ExpressRouter(app, {
   controllers: [productController],
   dataSource,
   queryOptions: {
-    defaultTop: 20,
     maxTop: 1000,
+    maxSkip: 1000,
   },
 });
 ```

@@ -10,6 +10,13 @@ export const QUERY_OPTIONS = {
   COMPUTE: 'compute', // not implemented
 };
 
+export const QUERY_DEFAULTS = {
+  /** Default maximum value allowed for $top */
+  MAX_TOP: 1000,
+  /** Default maximum value allowed for $skip */
+  MAX_SKIP: 1000,
+};
+
 export enum APPLY_OPTIONS {
   GROUPBY = 'groupby',
   AGGREGATE = 'aggregate',

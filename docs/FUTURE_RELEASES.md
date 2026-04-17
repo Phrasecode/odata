@@ -56,7 +56,6 @@
 
 ### 12. Query Options Configuration
 
-- [ ] expandDepth
-- [ ] selectDepth
-- [ ] maxTop
-- [ ] maxSkip
+- [x] expandDepth
+- [x] maxTop
+- [x] maxSkip

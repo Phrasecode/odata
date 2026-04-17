@@ -115,8 +115,7 @@ new ExpressRouter(app, {
   dataSource,
   queryOptions: {
     maxTop: 1000, // Maximum records per request
-    defaultTop: 100, // Default if not specified
-    defaultSkip: 0,
+    maxSkip: 1000, // Maximum skip offset per request
   },
 });
 ```
