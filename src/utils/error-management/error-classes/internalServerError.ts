@@ -3,6 +3,6 @@ import { AppError } from '../appError';
 
 export class InternalServerError extends AppError {
   constructor(message: string, details?: any, stack?: string) {
-    super(ERROR_CODES.NOT_FOUND_ERROR, message, details, stack);
+    super(ERROR_CODES.INTERNAL_SERVER_ERROR, message, details, stack);
   }
 }
