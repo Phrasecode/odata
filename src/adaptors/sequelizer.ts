@@ -330,7 +330,13 @@ export class SequelizerAdaptor {
       }
 
       const field = this.buildExpression(args[0]);
-      const searchValue = this.buildExpression(args[1]);
+      const rawSearchValue = this.buildExpression(args[1]);
+
+      // Escape LIKE wildcards in the search value to prevent wildcard injection
+      const searchValue =
+        typeof rawSearchValue === 'string'
+          ? rawSearchValue.replace(/[%_\\]/g, '\\$&')
+          : rawSearchValue;
 
       // Determine if we're checking for true or false
       const checkForTrue =
@@ -339,13 +345,13 @@ export class SequelizerAdaptor {
       let likePattern: string;
       switch (funcName) {
         case 'contains':
-          likePattern = checkForTrue ? `%${searchValue}%` : `NOT LIKE '%${searchValue}%'`;
+          likePattern = `%${searchValue}%`;
           break;
         case 'startswith':
-          likePattern = checkForTrue ? `${searchValue}%` : `NOT LIKE '${searchValue}%'`;
+          likePattern = `${searchValue}%`;
           break;
         case 'endswith':
-          likePattern = checkForTrue ? `%${searchValue}` : `NOT LIKE '%${searchValue}'`;
+          likePattern = `%${searchValue}`;
           break;
         default:
           throw new BadRequestError(`Unsupported boolean function: ${funcName}`);
@@ -354,8 +360,7 @@ export class SequelizerAdaptor {
       if (checkForTrue) {
         return where(field, Op.like, likePattern);
       } else {
-        // For negative checks, use notLike
-        return where(field, Op.notLike, likePattern.replace(/NOT LIKE '?/, ''));
+        return where(field, Op.notLike, likePattern);
       }
     }
 
@@ -377,10 +382,22 @@ export class SequelizerAdaptor {
       case 'in':
         return where(leftSide, Op.in, Array.isArray(rightSide) ? rightSide : [rightSide]);
       case 'has':
-        // OData V4 'has' operator is for enum flags.
-        // For now, we'll treat it as a bitwise AND check for integer flags.
-        // This is a simplification and might need refinement based on the actual DB schema.
-        return where(literal(`${leftSide} & ${rightSide}`), Op.eq, rightSide);
+        // OData V4 'has' operator is for enum flags (bitwise AND check).
+        // Restrict to simple field-to-integer comparisons to prevent SQL injection.
+        if (leftExpression.type !== 'field' || rightExpression.type !== 'literal') {
+          throw new BadRequestError(
+            "'has' operator only supports simple field-to-value comparisons (e.g., flags has 4)",
+          );
+        }
+        if (typeof rightSide !== 'number' || !Number.isInteger(rightSide)) {
+          throw new BadRequestError("'has' operator requires an integer right-hand value");
+        }
+        {
+          // Build safe literal using validated column name and integer value
+          const fieldName = leftExpression.field?.name || '';
+          const flagValue = Math.floor(rightSide);
+          return where(literal(`"${fieldName.replace(/"/g, '""')}" & ${flagValue}`), Op.eq, flagValue);
+        }
       default:
         // For simple field comparisons, use object notation
         if (leftExpression.type === 'field' && rightExpression.type === 'literal') {
@@ -589,10 +606,25 @@ export class SequelizerAdaptor {
         return `CEIL(${args[0]})`;
       case 'cast':
         // OData V4 cast(expression, type) -> SQL CAST(expression AS type)
-        // Note: The type argument in OData is a string literal, which will be quoted in expressionToSql.
-        // We need to unquote it.
-        const typeArg = args[1].replace(/^'|'$/g, '');
-        return `CAST(${args[0]} AS ${typeArg})`;
+        // Validate the type argument against a strict allowlist to prevent SQL injection.
+        const ALLOWED_CAST_TYPES = [
+          'int', 'integer', 'bigint', 'smallint', 'tinyint',
+          'float', 'real', 'double', 'double precision',
+          'decimal', 'numeric',
+          'varchar', 'char', 'text', 'nvarchar', 'nchar', 'ntext',
+          'date', 'time', 'datetime', 'datetime2', 'timestamp', 'timestamptz',
+          'boolean', 'bool', 'bit',
+          'uuid', 'guid',
+          'json', 'jsonb',
+          'binary', 'varbinary', 'blob',
+        ];
+        const rawTypeArg = args[1].replace(/^'|'$/g, '').trim().toLowerCase();
+        // Also allow types with precision like decimal(10,2) or varchar(255)
+        const baseType = rawTypeArg.replace(/\([\d,\s]+\)$/, '');
+        if (!ALLOWED_CAST_TYPES.includes(baseType)) {
+          throw new BadRequestError(`Invalid CAST type: ${rawTypeArg}. Allowed types: ${ALLOWED_CAST_TYPES.join(', ')}`);
+        }
+        return `CAST(${args[0]} AS ${rawTypeArg})`;
       default:
         throw new BadRequestError(`Unsupported function: ${func.name}`);
     }
