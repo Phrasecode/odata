@@ -8,6 +8,7 @@ import { NotFoundError } from '../utils/error-management';
 import { Logger } from '../utils/logger';
 import { PerfLogger } from '../utils/perfLogger';
 import { Model } from './model';
+import { QueryModel } from './queryModel';
 
 /**
  * DataSource manages the database connection and model registration.
@@ -55,18 +56,26 @@ export class DataSource {
     }
     dbConfig.models.forEach((entity: typeof Model<any>) => {
       const { tableMetadata, columnMetadata } = entity.getMetadata();
-      this.sequelizerAdaptor.define(
-        tableMetadata.tableIdentifier,
-        columnMetadata,
-        tableMetadata.options,
-      );
+      // Register all models in entityMap for response parsing
       this.entityMap.set(tableMetadata.modelName, entity);
       this.entityNameMap.set(tableMetadata.modelName, tableMetadata.tableIdentifier);
+
+      // Skip CustomQueryModel classes from Sequelize definition - they don't map to database tables
+      if (this.isQueryModel(entity)) {
+        return;
+      }
+
+      this.sequelizerAdaptor.define(tableMetadata.tableIdentifier, columnMetadata);
     });
   }
 
   private defineRelations() {
     this.entityMap.forEach((entity: typeof Model<any>, _key: string) => {
+      // Skip CustomQueryModel classes - they don't have database relations
+      if (this.isQueryModel(entity)) {
+        return;
+      }
+
       const { relationMetadata, tableMetadata } = entity.getMetadata();
       for (let index = 0; index < relationMetadata.length; index++) {
         const relation = relationMetadata[index];
@@ -96,6 +105,11 @@ export class DataSource {
     });
 
     this.entityMap.forEach((entity: typeof Model<any>, _key: string) => {
+      // Skip CustomQueryModel classes - they don't have database relations
+      if (this.isQueryModel(entity)) {
+        return;
+      }
+
       const { relationMetadata, tableMetadata } = entity.getMetadata();
       for (let index = 0; index < relationMetadata.length; index++) {
         const relation = relationMetadata[index];
@@ -153,20 +167,25 @@ export class DataSource {
   }
 
   /**
-   * Generate OData V4 metadata in JSON format.
+   * Generate OData V4 metadata in CSDL+JSON format.
    * This method creates a complete metadata object describing all entities,
-   * their properties, and relationships.
+   * their properties, relationships, and query functions.
    *
+   * @param controllerEndpoints - Optional array of controller endpoint information
+   * @param baseUrl - Optional base URL for the API
    * @returns JSON object representing the OData V4 metadata
    *
    * @example
    * ```typescript
    * const metadata = dataSource.getMetadata();
-   * // Returns metadata as JSON object
+   * // Returns metadata as JSON object in OData v4 CSDL+JSON format
    * ```
    */
-  public getMetadata(): any {
-    return generateMetadata(this.entityMap);
+  public getMetadata(
+    controllerEndpoints: import('../types').ControllerEndpointInfo[] = [],
+    baseUrl?: string,
+  ): import('../types').ODataMetadata {
+    return generateMetadata(this.entityMap, controllerEndpoints, baseUrl);
   }
 
   /**
@@ -232,5 +251,50 @@ export class DataSource {
       }': ${error.message}`;
       throw error;
     }
+  }
+
+  /**
+   * Execute a raw SQL query against the database.
+   * This method allows executing custom SQL queries when OData queries are not sufficient.
+   *
+   * @param sql - The raw SQL query string with parameter placeholders ($1, $2, etc.)
+   * @param params - Array of parameter values to bind to the query
+   * @returns Promise resolving to the query results
+   */
+  public async executeRawQuery<T extends Model<T>>(
+    sql: string,
+    params: Record<string, unknown>,
+    modelName: string,
+  ): Promise<IQueryExecutionResponse<T>> {
+    try {
+      const perfLogger = new PerfLogger();
+      perfLogger.start();
+
+      const baseModel = this.entityMap.get(modelName);
+      if (!baseModel) {
+        throw new NotFoundError(`Model class for table '${modelName}' not found`);
+      }
+
+      const result = await this.sequelizerAdaptor.rawQuery(sql, params);
+      const executionTime: number = perfLogger.end();
+
+      const response = parseResponse(result.data, baseModel, executionTime);
+
+      Logger.getLogger().info(
+        `Raw query executed: ${executionTime}ms`,
+        undefined,
+        'logDbExecutionTime',
+      );
+
+      return response;
+    } catch (err) {
+      const error = err as Error;
+      error.message = `DataSource raw query execution failed: ${error.message}`;
+      throw error;
+    }
+  }
+
+  private isQueryModel(model: typeof Model): model is typeof QueryModel {
+    return model.prototype instanceof QueryModel;
   }
 }

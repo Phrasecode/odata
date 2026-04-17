@@ -72,21 +72,27 @@ interface FilterCondition {
 
 /**
  * Represents any expression that can appear in a filter
- * This is the key improvement - expressions can be fields, literals, or function calls
  */
 interface FilterExpression {
+  /**
+   * The type of expression:
+   * - 'field': Database column/property reference (e.g., 'name', 'age', 'department/name')
+   * - 'literal': Constant value (e.g., 'John', 18, true, null, Date)
+   * - 'function': OData function call (e.g., tolower(name), year(createdAt), contains(email, '@gmail.com'))
+   * - 'arithmetic': Mathematical operation (e.g., price mul 1.1, quantity add 5, total sub discount)
+   */
   type: 'field' | 'literal' | 'function' | 'arithmetic';
 
-  // For type='field'
+  // For type='field': Reference to a database column/property
   field?: FieldReference;
 
-  // For type='literal'
-  value?: any; // string, number, boolean, null, Date
+  // For type='literal': Constant value (string, number, boolean, null, Date)
+  value?: any;
 
-  // For type='function'
+  // For type='function': OData function call with arguments
   function?: FilterFunction;
 
-  // For type='arithmetic'
+  // For type='arithmetic': Mathematical operation (add, sub, mul, div, mod)
   arithmetic?: ArithmeticExpression;
 }
 

@@ -4,6 +4,4 @@ export const DataTypes = SequelizeDataTypes;
 
 export type IDataType = SequelizeDataTypeInterface;
 
-export interface IEntitySchemaOptions {
-  timestamps?: boolean;
-}
+export interface IEntitySchemaOptions {}

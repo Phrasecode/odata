@@ -7,7 +7,7 @@ import {
   TableOptions,
 } from '../types';
 import { NotFoundError } from '../utils/error-management';
-import { convertStringToSnakeCase } from '../utils/utilFunctions';
+import { convertStringToSnakeCase } from '../utils/stringUtilFunctions';
 
 /**
  * Internal interface for storing relation metadata.
@@ -39,8 +39,7 @@ interface IColumnData {
  * ```typescript
  * @Table({
  *   tableName: 'users',
- *   underscored: true,
- *   timestamps: true
+ *   underscored: true
  * })
  * class User extends Model<User> {
  *   @Column({
@@ -64,7 +63,7 @@ interface IColumnData {
  * ```
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export class Model<T = any> {
+export class Model<T> {
   private static tableMetadata?: TableOptions;
   private static columnOption: IColumnData[] = [];
   private static relationOption: IRelationData[] = [];
@@ -140,9 +139,6 @@ export class Model<T = any> {
     const tableMetadata = {
       modelName: this.name,
       tableIdentifier: this.getIdentifier(this.name, this.tableMetadata?.tableName),
-      options: {
-        timestamps: this.tableMetadata?.timestamps ?? false,
-      },
     };
 
     const columnMetadata = this.getColumnMetaData();

@@ -1,4 +1,4 @@
-import { DataSource, Model } from '../../core';
+import { Model } from '../../core';
 import {
   ExpandClause,
   FilterClause,
@@ -26,16 +26,12 @@ import { parseSelect } from './parseSelect';
  * ```typescript
  * const queryParser = new QueryParser(
  *   '/users?$select=name,email&$filter=age gt 18&$orderby=name asc&$top=10',
- *   dataSource,
  *   User,
  *   { defaultTop: 100, defaultSkip: 0 }
  * );
- *
- * const results = await dataSource.execute(queryParser);
  * ```
  */
 class QueryParser {
-  private readonly dataSource: DataSource;
   private readonly options: IQueryParseOptions;
   private readonly model: typeof Model<any>;
   /** Original query string */
@@ -66,18 +62,11 @@ class QueryParser {
    * Creates a new QueryParser instance and parses the query string.
    *
    * @param queryString - Full OData query string (e.g., '/users?$select=name&$filter=age gt 18')
-   * @param dataSource - DataSource instance for database operations
    * @param model - Model class being queried
    * @param options - Optional parser configuration (default pagination values)
    */
-  constructor(
-    queryString: string,
-    dataSource: DataSource,
-    model: typeof Model<any>,
-    options?: IQueryParseOptions,
-  ) {
+  constructor(queryString: string, model: typeof Model<any>, options?: IQueryParseOptions) {
     this.queryString = queryString;
-    this.dataSource = dataSource;
     this.options = options || {};
     this.model = model;
     this.parse(queryString);
@@ -282,14 +271,6 @@ class QueryParser {
       skip: this.skip,
       count: this.count,
     };
-  }
-
-  /**
-   * Get the DataSource instance.
-   * @returns The DataSource used by this parser
-   */
-  public getDataSource() {
-    return this.dataSource;
   }
 }
 

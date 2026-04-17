@@ -16,7 +16,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Delta support for change tracking
 - OpenAPI/Swagger integration
 
-## [0.7.0] - 2025-11-13
+## [0.3.1] - 2025-12-05
+
+### Added
+
+#### Custom SQL Queries
+
+- **@Query Decorator**: Define custom API endpoints on controllers
+  - Configure HTTP method, endpoint path, and query parameters
+  - Automatic parameter validation with required/optional support
+  - Default value support for optional parameters
+  - Type-safe parameter definitions using DataTypes
+- **QueryModel**: Virtual model for complex query results
+  - Define response shapes for queries that don't match existing tables
+  - Not mapped to database tables (skipped in Sequelize)
+  - Full decorator support (@Table, @Column)
+  - Type-safe query result mapping
+- **QueryController**: Controller for custom SQL-only endpoints
+  - Designed for reporting and analytics endpoints
+  - No standard OData query support (custom SQL only)
+  - Works with QueryModel for response mapping
+- **rawQueryable() Method**: Execute raw SQL with OData response format
+  - Named parameter support ($paramName syntax)
+  - Automatic result mapping to model
+  - Returns standard OData response format
+  - Available in both ODataControler and QueryController
+
+#### Controller Architecture
+
+- **BaseControler**: Abstract base class for all controllers
+  - Common functionality for query execution
+  - DataSource management
+  - Endpoint naming convention support
+- **ODataControler**: Standard OData controller (extends BaseControler)
+  - Full OData query support ($filter, $select, $expand, etc.)
+  - Support for @Query decorator for additional endpoints
+  - Can use regular Model<T> with custom SQL when results match
+- **QueryController**: Custom SQL-only controller (extends BaseControler)
+  - Designed for QueryModel usage
+  - Only supports @Query decorated methods
+
+#### OpenRouter Enhancements
+
+- **pathMapping Configuration**: Map URL paths to models
+  - Required for model identification in serverless/Next.js
+  - Automatic path matching with query parameter stripping
+  - Used by both queryable() and rawQueryable() methods
+- **rawQueryable() Method**: Execute raw SQL in OpenRouter
+  - Path parameter must match a pathMapping entry
+  - Automatic model identification for response mapping
+
+#### ExpressRouter Enhancements
+
+- **Endpoint Naming Conventions**: Configure endpoint path generation
+  - `AS_MODEL_NAME`: Use model class name as-is
+  - `KEBAB_CASE`: Convert to kebab-case (default)
+  - `LOWER_CASE`: Convert to lowercase
+- **Automatic Custom Route Registration**: @Query decorated methods auto-registered
+- **Parameter Validation**: Automatic validation of required parameters (returns 400)
+
+### Changed
+
+- Refactored controller hierarchy (ODataControler → BaseControler extraction)
+- DataSource now skips QueryModel in Sequelize definition and relations
+- Moved controller exports to dedicated `src/controller/` directory
+
+## [0.2.0] - 2025-11-13
 
 ### Added
 
@@ -195,7 +260,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
-- **0.7.0** (2025-11-13) - Documentation fixes and metadata endpoint documentation
+- **0.3.1** (2025-12-05) - Custom SQL queries, QueryModel, QueryController, @Query decorator
+- **0.2.0** (2025-11-13) - Core OData v4 functionality, decorators, routers
 - **0.1.0** (2025-11-11) - Initial release
 
 ---
@@ -229,8 +295,9 @@ Special thanks to all contributors and the open-source community.
 
 ---
 
-[Unreleased]: https://github.com/Phrasecode/odata/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/Phrasecode/odata/compare/v0.1.0...v0.7.0
+[Unreleased]: https://github.com/Phrasecode/odata/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Phrasecode/odata/compare/v0.2.0...v0.3.1
+[0.2.0]: https://github.com/Phrasecode/odata/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Phrasecode/odata/releases/tag/v0.1.0
 
 ---
