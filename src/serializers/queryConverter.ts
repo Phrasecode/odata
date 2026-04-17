@@ -104,10 +104,7 @@ const convertColumnNameToColumnIdentifier = (
       });
       if (!relation) {
         throw new NotFoundError(
-          `Navigation property '${expand.table}' not found on table '${rawData.table}'. ` +
-            `Available navigation properties: ${relationMetadata
-              .map(r => r.propertyKey)
-              .join(', ')}`,
+          `Navigation property '${expand.table}' not found`,
         );
       }
       // Update expand.table to use the actual model name for recursive processing

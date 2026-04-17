@@ -80,11 +80,8 @@ export class OpenRouter {
       response.meta.totalExecutionTime = executionTime;
       return response;
     } catch (error: unknown) {
-      throw new InternalServerError(
-        'Error processing request',
-        { message: (error as Error).message, stack: (error as Error).stack },
-        (error as Error).stack,
-      );
+      Logger.getLogger().error('Error processing request', error);
+      throw new InternalServerError('Error processing request');
     }
   }
 
@@ -132,11 +129,8 @@ export class OpenRouter {
 
       return response;
     } catch (error: unknown) {
-      throw new InternalServerError(
-        'Error processing raw query',
-        { message: (error as Error).message, stack: (error as Error).stack },
-        (error as Error).stack,
-      );
+      Logger.getLogger().error('Error processing raw query', error);
+      throw new InternalServerError('Error processing raw query');
     }
   }
 
