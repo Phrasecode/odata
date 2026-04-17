@@ -189,6 +189,14 @@ export class ExpressRouter {
         return;
       }
     });
+
+    // Return 405 Method Not Allowed for unsupported HTTP methods
+    router.all('/', (_req, res) => {
+      res
+        .status(STATUS_CODES.METHOD_NOT_ALLOWED)
+        .set('Allow', allowedMethods.map(m => m.toUpperCase()).join(', '))
+        .json({ error: 'Method Not Allowed' });
+    });
   }
 
   /**
