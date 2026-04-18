@@ -58,3 +58,5 @@ coverage/
 *.env
 
 *.next/
+test
+.env.local
