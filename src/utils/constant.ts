@@ -113,7 +113,7 @@ export enum STATUS_CODES {
   INTERNAL_SERVER_ERROR = 500,
 }
 
-export const FUTUR_OPERATORS = {
+export const FUTURE_OPERATORS = {
   SEARCH: 'search',
   COMPUTE: 'compute',
   DATE_FUNCTIONS: {

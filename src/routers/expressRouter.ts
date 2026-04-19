@@ -166,12 +166,15 @@ export class ExpressRouter {
               model,
               this.config.queryOptions,
             );
-            const responce = await controller.get(queryParser);
+            const response = await controller.get(queryParser);
             const executionTime = perfLogger.end();
-            responce.meta.totalExecutionTime = executionTime;
-            res.send(responce);
+            response.meta.totalExecutionTime = executionTime;
+            res.send(response);
           } catch (error) {
-            Logger.getLogger().error('Error processing request', error);
+            Logger.getLogger().error(
+              'Unable to process the OData request. Please verify the request path, query syntax, and model route configuration.',
+              error,
+            );
 
             if (error instanceof AppError) {
               res.status(error.statusCode).json({

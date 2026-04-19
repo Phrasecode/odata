@@ -3,6 +3,7 @@ import {
   ModelAttributes,
   ModelStatic,
   Op,
+  Options,
   Sequelize,
   DataType as SequelizeDataTypeInterface,
   DataTypes as SequelizeDataTypes,
@@ -106,7 +107,7 @@ export class SequelizerAdaptor {
 
   constructor(dbConfig: IDbConfig) {
     // For SQLite, use 'storage' instead of 'database'
-    const sequelizeConfig: any = {
+    const sequelizeConfig: Options = {
       username: dbConfig.username,
       password: dbConfig.password,
       host: dbConfig.host,
@@ -175,7 +176,7 @@ export class SequelizerAdaptor {
   ) {
     const sourceModel = this.sequelize.models[sourceModelName];
     const targetModel = this.sequelize.models[targetModelName];
-    relations.map(relation => {
+    relations.forEach(relation => {
       if (type === 'belongsTo') {
         sourceModel.belongsTo(targetModel, {
           foreignKey: {
@@ -209,8 +210,12 @@ export class SequelizerAdaptor {
     }[];
   } {
     const formattedAttributes: ModelAttributes<Model<any, any>> = {};
-    const relations: any = [];
-    attributes.map(column => {
+    const relations: {
+      model: string;
+      relation: 'many' | 'one';
+      mapping: { sourceKey: string; targetKey: string }[];
+    }[] = [];
+    attributes.forEach(column => {
       formattedAttributes[column.columnIdentifier] = {
         type: column.dataType,
         field: column.columnIdentifier,
@@ -327,9 +332,10 @@ export class SequelizerAdaptor {
     if (logicalOperator === OPERATORS.LOGICAL.NOT && conditions.length >= 1) {
       const conditionToNegate = conditions[0];
       return {
-        [Op.not]: 'logicalOperator' in conditionToNegate
-          ? this.buildWhere(conditionToNegate)
-          : this.buildCondition(conditionToNegate as FilterCondition),
+        [Op.not]:
+          'logicalOperator' in conditionToNegate
+            ? this.buildWhere(conditionToNegate)
+            : this.buildCondition(conditionToNegate as FilterCondition),
       };
     }
 

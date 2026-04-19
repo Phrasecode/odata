@@ -7,7 +7,7 @@ import { Logger } from '../utils/logger';
 import { PerfLogger } from '../utils/perfLogger';
 
 /**
- * OpenRouter has capble to integrate with any framework.
+ * OpenRouter has capable to integrate with any framework.
  * This router supports serverless functions as well as any server framework like NextJs
  * Provides a simple way to create OData API routes in Next.js API routes.
  *
@@ -80,8 +80,13 @@ export class OpenRouter {
       response.meta.totalExecutionTime = executionTime;
       return response;
     } catch (error: unknown) {
-      Logger.getLogger().error('Error processing request', error);
-      throw new InternalServerError('Error processing request');
+      Logger.getLogger().error(
+        'Unable to process the OData request. Please verify the request path, query syntax, and model route configuration.',
+        error,
+      );
+      throw new InternalServerError(
+        'Unable to process the OData request. Please verify the request path, query syntax, and model route configuration.',
+      );
     }
   }
 
@@ -129,8 +134,9 @@ export class OpenRouter {
 
       return response;
     } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : 'unknown failure';
       Logger.getLogger().error('Error processing raw query', error);
-      throw new InternalServerError('Error processing raw query');
+      throw new InternalServerError(`Error processing raw query: ${reason}`);
     }
   }
 

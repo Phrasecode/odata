@@ -74,6 +74,9 @@ class QueryParser {
   }
 
   private parse(queryString: string) {
+    if (typeof queryString !== 'string') {
+      throw new BadRequestError('Query string must be a string');
+    }
     try {
       const urlParts = queryString.split('?');
       const searchParams = urlParts[1];
