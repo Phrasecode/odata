@@ -53,40 +53,40 @@ export const OPERATORS = {
   STRING_FUNCTIONS: {
     TOLOWER: 'tolower',
     TOUPPER: 'toupper',
-    TRIM: 'trim', // not implemented
+    TRIM: 'trim',
     SUBSTRING: 'substring',
     CONTAINS: 'contains',
     ENDSWITH: 'endswith',
     STARTSWITH: 'startswith',
     INDEX_OF: 'indexof',
     LENGTH: 'length',
-    CONCAT: 'concat', // not implemented
+    CONCAT: 'concat',
   },
   DATE_FUNCTIONS: {
-    DATE: 'date', // not implemented
-    TIME: 'time', // not implemented
-    DAY: 'day', // not implemented
-    MONTH: 'month', // not implemented
-    YEAR: 'year', // not implemented
-    HOUR: 'hour', // not implemented
-    MINUTE: 'minute', // not implemented
-    SECOND: 'second', // not implemented,
-    NOW: 'now', // not implemented,
+    DATE: 'date',
+    TIME: 'time',
+    DAY: 'day',
+    MONTH: 'month',
+    YEAR: 'year',
+    HOUR: 'hour',
+    MINUTE: 'minute',
+    SECOND: 'second',
+    NOW: 'now',
   },
   ARITHMETIC: {
-    ADD: 'add', // not implemented /products?$filter=Price add 10 gt 100
-    SUB: 'sub', // not implemented
-    MUL: 'mul', // not implemented /products?$filter=Price mul 2 lt 500
-    DIV: 'div', // not implemented
-    MOD: 'mod', // not implemented
+    ADD: 'add',
+    SUB: 'sub',
+    MUL: 'mul',
+    DIV: 'div',
+    MOD: 'mod',
   },
   MATH_FUNCTIONS: {
-    ROUND: 'round', // not implemented
-    FLOOR: 'floor', // not implemented Orders?$filter=floor(Freight) eq 33 or Orders?$filter=ceiling(Freight) eq 33d
-    CEILING: 'ceiling', // not implemented
+    ROUND: 'round',
+    FLOOR: 'floor',
+    CEILING: 'ceiling',
   },
   TYPE_FUNCTIONS: {
-    CAST: 'cast', // not implemented
+    CAST: 'cast',
   },
   COLLECTION: {
     IN: 'in',

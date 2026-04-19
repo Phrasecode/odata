@@ -177,6 +177,28 @@ function parseTokens(tokens: string[]): FilterClause | FilterCondition | undefin
   }
 
   function parseCondition(): FilterCondition | FilterClause {
+    // Handle 'not' operator
+    if (tokens[index]?.toLowerCase() === 'not') {
+      index++; // consume 'not'
+      let usesParenthesis = false;
+      if (tokens[index] === '(') {
+        usesParenthesis = true;
+        index++;
+      }
+      const condition = parseCondition();
+      if (usesParenthesis) {
+        if (tokens[index] === ')') {
+          index++;
+        } else {
+          throw new BadRequestError('Expected closing parenthesis after not condition');
+        }
+      }
+      return {
+        logicalOperator: 'not' as any,
+        conditions: [condition],
+      };
+    }
+
     // Handle parenthesized logical expressions
     // We need to peek ahead to determine if this is a logical grouping or arithmetic grouping
     if (tokens[index] === '(') {
@@ -254,7 +276,35 @@ function parseTokens(tokens: string[]): FilterClause | FilterCondition | undefin
     index++; // consume operator
 
     // Parse right expression
-    const rightExpression = parseExpression();
+    let rightExpression: FilterExpression;
+    
+    if (operator === 'in') {
+      if (tokens[index] === '(') {
+        index++; // consume '('
+        const list: FilterExpression[] = [];
+        while (index < tokens.length && tokens[index] !== ')') {
+          if (tokens[index] === ',') {
+            index++;
+            continue;
+          }
+          list.push(parseExpression());
+        }
+        if (tokens[index] === ')') {
+          index++; // consume ')'
+        } else {
+          throw new BadRequestError('Expected closing parenthesis for IN operator list');
+        }
+        // Build rightExpression as a literal containing the array of values
+        rightExpression = { 
+          type: 'literal', 
+          value: list.map(e => e.type === 'literal' ? e.value : null) 
+        } as FilterExpression; 
+      } else {
+        throw new BadRequestError('Expected parenthesis after IN operator');
+      }
+    } else {
+      rightExpression = parseExpression();
+    }
 
     return {
       leftExpression,

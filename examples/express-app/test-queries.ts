@@ -696,6 +696,44 @@ export const query89_temporalAnalysis =
 export const query90_ultimateComplexQuery =
   "/CustomUser?$filter=isActive eq true and departmentId ne null and (length(username) add length(email)) gt 30 and contains(tolower(email),'@company.com') and year(createdAt) ge 2023 and notes/any(n: n/isPinned eq true and length(n/title) gt 10 and (day(now()) sub day(n/createdAt)) le 90) and categories/any(c: c/notes/$count gt 2)&$expand=myDepartment($expand=users($filter=isActive eq true and (userId mod 2) eq 0;$select=username,userId;$top=3);$select=id,departmentName,description),notes($filter=isPinned eq true and isArchived eq false and contains(tolower(title),'project');$expand=category($expand=creator($expand=myDepartment($select=departmentName);$select=username,email);$select=categoryName,description,createdAt);$select=noteId,title,content,isPinned,createdAt,updatedAt;$orderby=updatedAt desc;$top=5),categories($filter=notes/$count gt 1;$expand=notes($filter=isArchived eq false;$select=noteId,title,isPinned;$top=3);$select=categoryId,categoryName,description,createdAt;$orderby=createdAt desc)&$select=userId,username,email,fullName,departmentId,createdAt,updatedAt&$orderby=createdAt desc&$top=10";
 
+// DATE, MATH, AND TYPE FUNCTION QUERIES (81-90)
+export const query81_usersByYearMonth =
+  '/CustomUser?$filter=year(createdAt) eq 2024 and month(createdAt) eq 1&$select=userId,username,createdAt';
+
+export const query82_notesByDay =
+  '/Note?$filter=day(createdAt) eq 15&$select=noteId,title,createdAt';
+
+export const query83_categoriesMorning =
+  '/Category?$filter=hour(createdAt) lt 12 and minute(createdAt) ge 0&$select=categoryId,categoryName,createdAt';
+
+export const query84_recentUsers =
+  '/CustomUser?$filter=createdAt lt now()&$select=userId,username,createdAt&$top=5&$orderby=createdAt desc';
+
+export const query85_mathFunctions =
+  '/Note?$filter=floor(noteId) eq ceiling(noteId) and round(noteId) eq noteId&$select=noteId,title';
+
+export const query86_castFunction =
+  "/CustomUser?$filter=cast(userId, 'varchar') eq '1'&$select=userId,username";
+
+export const query87_concatFunction =
+  "/CustomUser?$filter=concat(username, email) ne ''&$select=userId,username,email&$top=5";
+
+// MISSING OPERATORS (91-97)
+export const query91_notOperator =
+  '/CustomUser?$filter=not(isActive eq false)&$select=userId,username,isActive';
+
+export const query93_endswithFunction =
+  "/CustomUser?$filter=endswith(email, 'company.com')&$select=userId,username,email";
+
+export const query94_toupperFunction =
+  "/CustomUser?$filter=toupper(username) eq 'ADMIN'&$select=userId,username";
+
+export const query95_dateFunction =
+  '/Note?$filter=date(createdAt) eq date(updatedAt)&$select=noteId,title,createdAt';
+
+export const query97_secondFunction =
+  '/Note?$filter=second(createdAt) ge 0&$select=noteId,title,createdAt&$top=5';
+
 export const allQueries = {
   // Basic queries
   query1_activeUsers,
@@ -801,6 +839,22 @@ export const allQueries = {
   query78_contentToTitleRatio,
   // query79_categoryIdTimesCount, --error
   query80_evenOddIds,
+
+  // Date, Math, and Type Function queries
+  query81_usersByYearMonth,
+  query82_notesByDay,
+  query83_categoriesMorning,
+  query84_recentUsers,
+  query85_mathFunctions,
+  query86_castFunction,
+  query87_concatFunction,
+
+  // Missing operators
+  query91_notOperator,
+  query93_endswithFunction,
+  query94_toupperFunction,
+  query95_dateFunction,
+  query97_secondFunction,
 
   // Deep and wide expansion
   // query81_fiveLevelExpansion,

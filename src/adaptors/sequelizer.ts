@@ -324,9 +324,12 @@ export class SequelizerAdaptor {
 
     if (!conditions || conditions.length === 0) return {};
 
-    if (logicalOperator === OPERATORS.LOGICAL.NOT && conditions.length === 1) {
+    if (logicalOperator === OPERATORS.LOGICAL.NOT && conditions.length >= 1) {
+      const conditionToNegate = conditions[0];
       return {
-        [Op.not]: this.buildCondition(conditions[0] as FilterCondition),
+        [Op.not]: 'logicalOperator' in conditionToNegate
+          ? this.buildWhere(conditionToNegate)
+          : this.buildCondition(conditionToNegate as FilterCondition),
       };
     }
 
