@@ -32,22 +32,22 @@ GET /orders?$top=50
 GET /articles?$top=5
 ```
 
-### Default and Maximum Values
+### Maximum Values
 
-You can configure default and maximum values for `$top` in the router configuration:
+You can configure maximum values for `$top` and `$skip` in the router configuration to prevent performance issues:
 
 ```typescript
 new ExpressRouter(app, {
   controllers: [userController],
   dataSource: dataSource,
   queryOptions: {
-    defaultTop: 20, // Default if $top not specified
-    maxTop: 1000, // Maximum allowed value
+    maxTop: 1000, // Maximum allowed $top value
+    maxSkip: 1000, // Maximum allowed $skip value
   },
 });
 ```
 
-**Note:** The framework enforces a maximum `$top` value of 1000 by default.
+**Note:** The framework enforces a maximum `$top` and `$skip` value of 1000 by default.
 
 ## $skip - Skipping Records
 
@@ -174,32 +174,30 @@ GET /orders?$select=id,orderDate,total,status&$filter=status ne 'cancelled'&$ord
 
 ## Configuration Options
 
-Configure pagination defaults in your router:
+Configure pagination limits in your router:
 
 ```typescript
 new ExpressRouter(app, {
   controllers: [userController, productController],
   dataSource: dataSource,
   queryOptions: {
-    defaultTop: 20, // Default page size when $top not specified
-    defaultSkip: 0, // Default skip value
     maxTop: 1000, // Maximum allowed $top value
+    maxSkip: 1000, // Maximum allowed $skip value
   },
 });
 ```
 
 | Option        | Type     | Default | Description                      |
 | ------------- | -------- | ------- | -------------------------------- |
-| `defaultTop`  | `number` | `0`     | Default $top when not specified  |
-| `defaultSkip` | `number` | `0`     | Default $skip when not specified |
 | `maxTop`      | `number` | `1000`  | Maximum allowed $top value       |
+| `maxSkip`     | `number` | `1000`  | Maximum allowed $skip value      |
 
 ## Best Practices
 
 1. **Always use $count for UI pagination** - Needed to calculate total pages
 2. **Combine with $orderby** - Ensure consistent ordering across pages
-3. **Set reasonable defaults** - Configure `defaultTop` to prevent returning all records
-4. **Limit maximum page size** - Use `maxTop` to prevent performance issues
+3. **Limit maximum page size** - Use `maxTop` to prevent performance issues
+4. **Limit maximum skip offset** - Use `maxSkip` to prevent deep-paging database performance degradation
 5. **Use with $filter** - Pagination works with filtered results
 
 ```typescript
@@ -213,7 +211,8 @@ GET /products
 ## Notes
 
 - `$skip` and `$top` must be non-negative integers
-- `$top` cannot exceed 1000 (configurable via `maxTop`)
+- `$top` cannot exceed 1000 by default (configurable via `maxTop`)
+- `$skip` cannot exceed 1000 by default (configurable via `maxSkip`)
 - `$count=true` adds a small overhead but is essential for pagination UI
 - Pagination is applied after filtering and sorting
-- When `$top` is 0 or not specified, all matching records are returned (unless `defaultTop` is configured)
+- When `$top` is 0 or not specified, all matching records are returned

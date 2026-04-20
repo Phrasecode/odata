@@ -48,18 +48,18 @@ const convertColumnNameToColumnIdentifier = (
   rawData.table = tableMetadata.tableIdentifier;
   // convert select
   if (rawData.select && rawData.select.length > 0) {
-    rawData.select = rawData.select.map(selectColunm => {
+    rawData.select = rawData.select.map(selectColumn => {
       const column = columnMetadata.find(column => {
-        if (column.propertyKey === selectColunm.field) {
+        if (column.propertyKey === selectColumn.field) {
           return column;
         }
         return undefined;
       });
       if (!column) {
-        throw new NotFoundError(`Column ${selectColunm.field} not found`);
+        throw new NotFoundError(`Column ${selectColumn.field} not found`);
       }
       return {
-        ...selectColunm,
+        ...selectColumn,
         field: column.columnIdentifier,
       };
     });

@@ -3,6 +3,7 @@ import {
   ModelAttributes,
   ModelStatic,
   Op,
+  Options,
   Sequelize,
   DataType as SequelizeDataTypeInterface,
   DataTypes as SequelizeDataTypes,
@@ -60,10 +61,53 @@ interface ISequelizeQuery {
 export class SequelizerAdaptor {
   private sequelize: Sequelize;
   private modelCache = new Map<string, SequelizeModelController>();
+  private dialect: string;
+
+  /**
+   * Sanitise a SQL identifier (table name, column name, alias) for safe
+   * interpolation inside a double-quoted identifier: `"${sanitised}"`.
+   *
+   * Uses the SQL-standard approach of escaping `"` → `""` so that the
+   * identifier stays contained within the surrounding quotes.  This is
+   * safer than a regex allowlist because it supports every valid database
+   * identifier (hyphens, dots, digits-at-start, unicode, etc.).
+   */
+  private sanitizeSqlIdentifier(name: string, context: string): string {
+    if (!name) {
+      throw new BadRequestError(`Invalid ${context}: identifier cannot be empty`);
+    }
+    if (name.includes('\0')) {
+      throw new BadRequestError(`Invalid ${context}: must not contain null bytes`);
+    }
+    // Escape double quotes to prevent breakout from "identifier"
+    return name.replace(/"/g, '""');
+  }
+
+  /**
+   * Safely escape a string value for use in a SQL literal.
+   * Uses single-quote doubling and rejects null bytes.
+   */
+  private escapeSqlString(value: string): string {
+    if (value.includes('\0')) {
+      throw new BadRequestError('String values must not contain null bytes');
+    }
+    return `'${value.replace(/'/g, "''")}'`;
+  }
+
+  /**
+   * Validate a numeric value for safe use in SQL.
+   * Rejects NaN and Infinity which produce invalid SQL tokens.
+   */
+  private validateSqlNumber(value: number): string {
+    if (!Number.isFinite(value)) {
+      throw new BadRequestError(`Invalid numeric value: ${value}`);
+    }
+    return String(value);
+  }
 
   constructor(dbConfig: IDbConfig) {
     // For SQLite, use 'storage' instead of 'database'
-    const sequelizeConfig: any = {
+    const sequelizeConfig: Options = {
       username: dbConfig.username,
       password: dbConfig.password,
       host: dbConfig.host,
@@ -98,6 +142,7 @@ export class SequelizerAdaptor {
     }
 
     this.sequelize = new Sequelize(sequelizeConfig);
+    this.dialect = dbConfig.dialect;
   }
 
   public define(modelName: string, attributes: ColumnMetadata[], _options?: IEntitySchemaOptions) {
@@ -131,7 +176,7 @@ export class SequelizerAdaptor {
   ) {
     const sourceModel = this.sequelize.models[sourceModelName];
     const targetModel = this.sequelize.models[targetModelName];
-    relations.map(relation => {
+    relations.forEach(relation => {
       if (type === 'belongsTo') {
         sourceModel.belongsTo(targetModel, {
           foreignKey: {
@@ -165,8 +210,12 @@ export class SequelizerAdaptor {
     }[];
   } {
     const formattedAttributes: ModelAttributes<Model<any, any>> = {};
-    const relations: any = [];
-    attributes.map(column => {
+    const relations: {
+      model: string;
+      relation: 'many' | 'one';
+      mapping: { sourceKey: string; targetKey: string }[];
+    }[] = [];
+    attributes.forEach(column => {
       formattedAttributes[column.columnIdentifier] = {
         type: column.dataType,
         field: column.columnIdentifier,
@@ -280,9 +329,13 @@ export class SequelizerAdaptor {
 
     if (!conditions || conditions.length === 0) return {};
 
-    if (logicalOperator === OPERATORS.LOGICAL.NOT && conditions.length === 1) {
+    if (logicalOperator === OPERATORS.LOGICAL.NOT && conditions.length >= 1) {
+      const conditionToNegate = conditions[0];
       return {
-        [Op.not]: this.buildCondition(conditions[0] as FilterCondition),
+        [Op.not]:
+          'logicalOperator' in conditionToNegate
+            ? this.buildWhere(conditionToNegate)
+            : this.buildCondition(conditionToNegate as FilterCondition),
       };
     }
 
@@ -396,7 +449,11 @@ export class SequelizerAdaptor {
           // Build safe literal using validated column name and integer value
           const fieldName = leftExpression.field?.name || '';
           const flagValue = Math.floor(rightSide);
-          return where(literal(`"${fieldName.replace(/"/g, '""')}" & ${flagValue}`), Op.eq, flagValue);
+          return where(
+            literal(`"${fieldName.replace(/"/g, '""')}" & ${flagValue}`),
+            Op.eq,
+            flagValue,
+          );
         }
       default:
         // For simple field comparisons, use object notation
@@ -465,12 +522,18 @@ export class SequelizerAdaptor {
     // Build the subquery based on the relation type
     let subquery: string;
 
+    // Sanitise all identifiers used in the subquery to prevent SQL injection
+    const safeTargetTable = this.sanitizeSqlIdentifier(targetTable, 'target table');
+    const safeSourceTable = this.sanitizeSqlIdentifier(sourceTable, 'source table');
+    const safeForeignKey = this.sanitizeSqlIdentifier(foreignKey, 'foreign key');
+    const safeSourceKey = this.sanitizeSqlIdentifier(sourceKey, 'source key');
+
     if (relationType === 'hasMany' || relationType === 'belongsToMany') {
       // For HasMany: SELECT COUNT(*) FROM related_table WHERE related_table.foreign_key = parent_table.primary_key
-      subquery = `(SELECT COUNT(*) FROM "${targetTable}" WHERE "${targetTable}"."${foreignKey}" = "${sourceTable}"."${sourceKey}")`;
+      subquery = `(SELECT COUNT(*) FROM "${safeTargetTable}" WHERE "${safeTargetTable}"."${safeForeignKey}" = "${safeSourceTable}"."${safeSourceKey}")`;
     } else if (relationType === 'belongsTo' || relationType === 'hasOne') {
       // For BelongsTo/HasOne: This would always be 0 or 1, but we support it anyway
-      subquery = `(SELECT COUNT(*) FROM "${targetTable}" WHERE "${targetTable}"."${sourceKey}" = "${sourceTable}"."${foreignKey}")`;
+      subquery = `(SELECT COUNT(*) FROM "${safeTargetTable}" WHERE "${safeTargetTable}"."${safeSourceKey}" = "${safeSourceTable}"."${safeForeignKey}")`;
     } else {
       throw new BadRequestError(`Unsupported relation type for $count: ${relationType}`);
     }
@@ -492,23 +555,30 @@ export class SequelizerAdaptor {
           return 'NULL';
         }
         if (typeof value === 'string') {
-          return `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+          return this.escapeSqlString(value);
         }
-        if (typeof value === 'number' || typeof value === 'boolean') {
+        if (typeof value === 'number') {
+          return this.validateSqlNumber(value);
+        }
+        if (typeof value === 'boolean') {
           return String(value);
         }
-        return String(value);
+        throw new BadRequestError(`Unsupported literal value type: ${typeof value}`);
 
       case 'field':
         // Check if this is a navigation path field
         if (expression.field?.navigationPath && expression.field?.table) {
           // Use table alias and column name for joined tables
-          const alias = expression.field.navigationPath[0]; // Navigation property name
-          const columnName = expression.field.name;
+          const alias = this.sanitizeSqlIdentifier(
+            expression.field.navigationPath[0],
+            'navigation property',
+          );
+          const columnName = this.sanitizeSqlIdentifier(expression.field.name, 'column name');
           return `"${alias}"."${columnName}"`;
         }
         // Return quoted column name for simple fields
-        return `"${expression.field?.name || ''}"`;
+        const fieldName = this.sanitizeSqlIdentifier(expression.field?.name || '', 'column name');
+        return `"${fieldName}"`;
 
       case 'count':
         // Handle $count in SQL string context
@@ -532,10 +602,16 @@ export class SequelizerAdaptor {
     const { relationType, sourceTable, targetTable, foreignKey, sourceKey } = countInfo;
 
     // Build the subquery based on the relation type
+    // Sanitise all identifiers used in the subquery to prevent SQL injection
+    const safeTargetTable = this.sanitizeSqlIdentifier(targetTable, 'target table');
+    const safeSourceTable = this.sanitizeSqlIdentifier(sourceTable, 'source table');
+    const safeForeignKey = this.sanitizeSqlIdentifier(foreignKey, 'foreign key');
+    const safeSourceKey = this.sanitizeSqlIdentifier(sourceKey, 'source key');
+
     if (relationType === 'hasMany' || relationType === 'belongsToMany') {
-      return `(SELECT COUNT(*) FROM "${targetTable}" WHERE "${targetTable}"."${foreignKey}" = "${sourceTable}"."${sourceKey}")`;
+      return `(SELECT COUNT(*) FROM "${safeTargetTable}" WHERE "${safeTargetTable}"."${safeForeignKey}" = "${safeSourceTable}"."${safeSourceKey}")`;
     } else if (relationType === 'belongsTo' || relationType === 'hasOne') {
-      return `(SELECT COUNT(*) FROM "${targetTable}" WHERE "${targetTable}"."${sourceKey}" = "${sourceTable}"."${foreignKey}")`;
+      return `(SELECT COUNT(*) FROM "${safeTargetTable}" WHERE "${safeTargetTable}"."${safeSourceKey}" = "${safeSourceTable}"."${safeForeignKey}")`;
     } else {
       throw new BadRequestError(`Unsupported relation type for $count: ${relationType}`);
     }
@@ -557,47 +633,66 @@ export class SequelizerAdaptor {
       case 'trim':
         return `TRIM(${args[0]})`;
       case 'substring':
-        // SQL SUBSTRING is 1-indexed, OData is 0-indexed
+        // SUBSTR is cross-dialect (SQLite/PostgreSQL/MySQL). OData is 0-indexed, SQL is 1-indexed.
         if (args.length === 3) {
-          return `SUBSTRING(${args[0]} FROM ${args[1]} + 1 FOR ${args[2]})`;
+          return `SUBSTR(${args[0]}, (${args[1]}) + 1, ${args[2]})`;
         } else if (args.length === 2) {
-          return `SUBSTRING(${args[0]} FROM ${args[1]} + 1)`;
+          return `SUBSTR(${args[0]}, (${args[1]}) + 1)`;
         }
-        return `SUBSTRING(${args.join(', ')})`;
+        return `SUBSTR(${args.join(', ')})`;
       case 'indexof':
-        // PostgreSQL STRPOS is 1-indexed, OData is 0-indexed
-        if (args.length === 2) {
-          return `(STRPOS(${args[0]}, ${args[1]}) - 1)`;
+        // PostgreSQL uses STRPOS; SQLite and MySQL use INSTR. Both are 1-indexed; OData is 0-indexed.
+        if (this.dialect === 'postgres') {
+          if (args.length === 2) {
+            return `(STRPOS(${args[0]}, ${args[1]}) - 1)`;
+          }
+          return `STRPOS(${args.join(', ')})`;
+        } else {
+          if (args.length === 2) {
+            return `(INSTR(${args[0]}, ${args[1]}) - 1)`;
+          }
+          return `INSTR(${args.join(', ')})`;
         }
-        return `STRPOS(${args.join(', ')})`;
       case 'length':
         return `LENGTH(${args[0]})`;
       case 'concat':
         return `CONCAT(${args.join(', ')})`;
       case 'contains':
-        return `(${args[0]} LIKE '%' || ${args[1]} || '%')`;
+        return `(${args[0]} LIKE ${this.concatSql(this.concatSql("'%'", args[1]), "'%'")})`;
       case 'startswith':
-        return `(${args[0]} LIKE ${args[1]} || '%')`;
+        return `(${args[0]} LIKE ${this.concatSql(args[1], "'%'")})`;
       case 'endswith':
-        return `(${args[0]} LIKE '%' || ${args[1]})`;
+        return `(${args[0]} LIKE ${this.concatSql("'%'", args[1])})`;
       case 'date':
         return `DATE(${args[0]})`;
       case 'time':
         return `TIME(${args[0]})`;
       case 'day':
-        return `EXTRACT(DAY FROM ${args[0]})`;
+        return this.dialect === 'sqlite'
+          ? `CAST(strftime('%d', ${args[0]}) AS INTEGER)`
+          : `EXTRACT(DAY FROM ${args[0]})`;
       case 'month':
-        return `EXTRACT(MONTH FROM ${args[0]})`;
+        return this.dialect === 'sqlite'
+          ? `CAST(strftime('%m', ${args[0]}) AS INTEGER)`
+          : `EXTRACT(MONTH FROM ${args[0]})`;
       case 'year':
-        return `EXTRACT(YEAR FROM ${args[0]})`;
+        return this.dialect === 'sqlite'
+          ? `CAST(strftime('%Y', ${args[0]}) AS INTEGER)`
+          : `EXTRACT(YEAR FROM ${args[0]})`;
       case 'hour':
-        return `EXTRACT(HOUR FROM ${args[0]})`;
+        return this.dialect === 'sqlite'
+          ? `CAST(strftime('%H', ${args[0]}) AS INTEGER)`
+          : `EXTRACT(HOUR FROM ${args[0]})`;
       case 'minute':
-        return `EXTRACT(MINUTE FROM ${args[0]})`;
+        return this.dialect === 'sqlite'
+          ? `CAST(strftime('%M', ${args[0]}) AS INTEGER)`
+          : `EXTRACT(MINUTE FROM ${args[0]})`;
       case 'second':
-        return `EXTRACT(SECOND FROM ${args[0]})`;
+        return this.dialect === 'sqlite'
+          ? `CAST(strftime('%S', ${args[0]}) AS INTEGER)`
+          : `EXTRACT(SECOND FROM ${args[0]})`;
       case 'now':
-        return 'NOW()';
+        return this.dialect === 'sqlite' ? "datetime('now')" : 'NOW()';
       case 'round':
         return `ROUND(${args[0]})`;
       case 'floor':
@@ -608,26 +703,75 @@ export class SequelizerAdaptor {
         // OData V4 cast(expression, type) -> SQL CAST(expression AS type)
         // Validate the type argument against a strict allowlist to prevent SQL injection.
         const ALLOWED_CAST_TYPES = [
-          'int', 'integer', 'bigint', 'smallint', 'tinyint',
-          'float', 'real', 'double', 'double precision',
-          'decimal', 'numeric',
-          'varchar', 'char', 'text', 'nvarchar', 'nchar', 'ntext',
-          'date', 'time', 'datetime', 'datetime2', 'timestamp', 'timestamptz',
-          'boolean', 'bool', 'bit',
-          'uuid', 'guid',
-          'json', 'jsonb',
-          'binary', 'varbinary', 'blob',
+          'int',
+          'integer',
+          'bigint',
+          'smallint',
+          'tinyint',
+          'float',
+          'real',
+          'double',
+          'double precision',
+          'decimal',
+          'numeric',
+          'varchar',
+          'char',
+          'text',
+          'nvarchar',
+          'nchar',
+          'ntext',
+          'date',
+          'time',
+          'datetime',
+          'datetime2',
+          'timestamp',
+          'timestamptz',
+          'boolean',
+          'bool',
+          'bit',
+          'uuid',
+          'guid',
+          'json',
+          'jsonb',
+          'binary',
+          'varbinary',
+          'blob',
         ];
         const rawTypeArg = args[1].replace(/^'|'$/g, '').trim().toLowerCase();
         // Also allow types with precision like decimal(10,2) or varchar(255)
         const baseType = rawTypeArg.replace(/\([\d,\s]+\)$/, '');
         if (!ALLOWED_CAST_TYPES.includes(baseType)) {
-          throw new BadRequestError(`Invalid CAST type: ${rawTypeArg}. Allowed types: ${ALLOWED_CAST_TYPES.join(', ')}`);
+          throw new BadRequestError(
+            `Invalid CAST type: ${rawTypeArg}. Allowed types: ${ALLOWED_CAST_TYPES.join(', ')}`,
+          );
         }
         return `CAST(${args[0]} AS ${rawTypeArg})`;
+      case 'div':
+        // OData `div(a, b)` used as a function call - emit inline arithmetic
+        if (args.length === 2) {
+          return `(${args[0]} / ${args[1]})`;
+        }
+        throw new BadRequestError('div() requires exactly 2 arguments');
+      case 'mod':
+        // OData `mod(a, b)` used as a function call - emit inline arithmetic
+        if (args.length === 2) {
+          return `(${args[0]} % ${args[1]})`;
+        }
+        throw new BadRequestError('mod() requires exactly 2 arguments');
       default:
         throw new BadRequestError(`Unsupported function: ${func.name}`);
     }
+  }
+
+  /**
+   * Helper to build a SQL string concatenation expression in a dialect-safe way.
+   * PostgreSQL and SQLite use `||`; MySQL/MariaDB use `CONCAT()`.
+   */
+  private concatSql(a: string, b: string): string {
+    if (this.dialect === 'mysql' || this.dialect === 'mariadb') {
+      return `CONCAT(${a}, ${b})`;
+    }
+    return `${a} || ${b}`;
   }
 
   /**
@@ -725,21 +869,29 @@ export class SequelizerAdaptor {
       case 'trim':
         return fn('TRIM', ...args);
       case 'substring':
-        // SQL SUBSTRING is 1-indexed, OData is 0-indexed
+        // SUBSTR is cross-dialect (SQLite/MySQL/PostgreSQL-compat). OData is 0-indexed, SQL is 1-indexed.
         if (args.length === 3 && typeof args[1] === 'number') {
-          return fn('SUBSTRING', args[0], args[1] + 1, args[2]);
+          return literal(this.functionToSql(func));
         } else if (args.length === 2 && typeof args[1] === 'number') {
-          return fn('SUBSTRING', args[0], args[1] + 1);
+          return literal(this.functionToSql(func));
         }
-        // For non-literal start positions, this should have been handled above
-        return fn('SUBSTRING', ...args);
+        // For non-literal start positions, delegate to functionToSql which uses SUBSTR
+        return literal(this.functionToSql(func));
       case 'indexof':
-        // This should have been handled above as a literal
-        // But if we get here, it's a simple case
-        if (args.length === 2 && typeof args[0] === 'string' && typeof args[1] === 'string') {
-          return literal(`(STRPOS('${args[0]}', '${args[1]}') - 1)`);
+        // INSTR is cross-dialect (SQLite/MySQL/PostgreSQL-compat). 1-indexed; OData is 0-indexed.
+        return literal(this.functionToSql(func));
+      case 'div':
+        // OData `div(a, b)` used as a function call - emit inline arithmetic literal
+        if (func.args.length === 2) {
+          return literal(this.functionToSql(func));
         }
-        return fn('STRPOS', ...args);
+        throw new BadRequestError('div() requires exactly 2 arguments');
+      case 'mod':
+        // OData `mod(a, b)` used as a function call - emit inline arithmetic literal
+        if (func.args.length === 2) {
+          return literal(this.functionToSql(func));
+        }
+        throw new BadRequestError('mod() requires exactly 2 arguments');
       case 'length':
         return fn('LENGTH', ...args);
       case 'concat':
@@ -749,19 +901,15 @@ export class SequelizerAdaptor {
       case 'time':
         return fn('TIME', ...args);
       case 'day':
-        return fn('EXTRACT', literal('DAY FROM'), ...args);
       case 'month':
-        return fn('EXTRACT', literal('MONTH FROM'), ...args);
       case 'year':
-        return fn('EXTRACT', literal('YEAR FROM'), ...args);
       case 'hour':
-        return fn('EXTRACT', literal('HOUR FROM'), ...args);
       case 'minute':
-        return fn('EXTRACT', literal('MINUTE FROM'), ...args);
       case 'second':
-        return fn('EXTRACT', literal('SECOND FROM'), ...args);
       case 'now':
-        return fn('NOW');
+        // Always use the literal path so dialect branching in functionToSql is applied
+        return literal(this.functionToSql(func));
+
       case 'round':
         return fn('ROUND', ...args);
       case 'floor':

@@ -25,7 +25,7 @@ const createSchema = (app: Express) => {
       min: parseInt(process.env.DB_POOL_MIN || '0'),
       idle: parseInt(process.env.DB_POOL_IDLE || '10000'),
     },
-    schema: process.env.DB_SCHEMA || 'public',
+    schema: process.env.DB_SCHEMA || '',
     ssl: process.env.DB_SSL === 'true',
     models: [Department, CustomUser, Note, Category, UserRole, Tag, Role, Permission],
   });

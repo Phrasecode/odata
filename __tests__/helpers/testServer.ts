@@ -25,6 +25,9 @@ export async function startTestServer(port = 3001): Promise<ChildProcess> {
     serverProcess = spawn('npx', ['ts-node', 'examples/express-app/server.ts'], {
       env: {
         ...process.env,
+        DB_DIALECT: 'sqlite',
+        DB_NAME: dbPath,
+        DB_SCHEMA: '',
         PORT: port.toString(),
         port: port.toString(),
         DB_PATH: dbPath,

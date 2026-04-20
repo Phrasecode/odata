@@ -145,8 +145,7 @@ interface IExpressRouterConfig {
   /** Options for query parser
    * @default {
    *   maxTop: 1000,
-   *   defaultTop: 0,
-   *   defaultSkip: 0,
+   *   maxSkip: 1000,
    * }
    */
   queryOptions?: IQueryParseOptions;
@@ -174,8 +173,7 @@ interface IOpenRouterConfig {
   /** Options for query parser
    * @default {
    *   maxTop: 1000,
-   *   defaultTop: 0,
-   *   defaultSkip: 0,
+   *   maxSkip: 1000,
    * }
    */
   queryOptions?: IQueryParseOptions;

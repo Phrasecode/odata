@@ -11,6 +11,7 @@ import {
 } from '../../types';
 import { BadRequestError } from '../../utils/error-management';
 import { Logger } from '../../utils/logger';
+import { QUERY_DEFAULTS } from '../../utils/constant';
 import { parseApply } from './parseApply';
 import { parseCompute } from './parseCompute';
 import { parseExpand } from './parseExpand';
@@ -27,7 +28,7 @@ import { parseSelect } from './parseSelect';
  * const queryParser = new QueryParser(
  *   '/users?$select=name,email&$filter=age gt 18&$orderby=name asc&$top=10',
  *   User,
- *   { defaultTop: 100, defaultSkip: 0 }
+ *   { maxTop: 1000, maxSkip: 10000 }
  * );
  * ```
  */
@@ -73,6 +74,9 @@ class QueryParser {
   }
 
   private parse(queryString: string) {
+    if (typeof queryString !== 'string') {
+      throw new BadRequestError('Query string must be a string');
+    }
     try {
       const urlParts = queryString.split('?');
       const searchParams = urlParts[1];
@@ -83,6 +87,9 @@ class QueryParser {
       this.validateQueryParameters(rawSearchParams);
 
       this.processRawSearchParams(rawSearchParams);
+      
+      // Validate parsed structures against configured limits
+      this.validateExpandDepth(this.expand);
     } catch (error) {
       Logger.getLogger().error(`Error parsing query ${queryString}`, error);
       throw error;
@@ -141,8 +148,8 @@ class QueryParser {
     this.orderBy = parseOrderBy(rawSearchParams.orderBy, this.baseTableName);
     this.expand = parseExpand(rawSearchParams.expand);
     this.filter = parseFilter(rawSearchParams.filter, this.baseTableName);
-    this.top = rawSearchParams.top || this.options.defaultTop || 0;
-    this.skip = rawSearchParams.skip || this.options.defaultSkip || 0;
+    this.top = rawSearchParams.top ?? 0;
+    this.skip = rawSearchParams.skip ?? 0;
     this.count = rawSearchParams.count === 'true'; // $count=true
     this.apply = parseApply(rawSearchParams.apply);
     this.compute = parseCompute(rawSearchParams.compute);
@@ -189,12 +196,16 @@ class QueryParser {
   }
 
   /**
-   * Validates $skip and $top parameters
+   * Validates $skip and $top parameters against configured limits
    */
   private validateSkipAndTop(skip?: number, top?: number) {
     if (skip !== undefined) {
       if (Number.isNaN(skip) || !Number.isInteger(skip) || skip < 0) {
         throw new BadRequestError(`$skip must be a non-negative integer, got: ${skip}`);
+      }
+      const maxSkip = this.options.maxSkip ?? QUERY_DEFAULTS.MAX_SKIP;
+      if (skip > maxSkip) {
+        throw new BadRequestError(`$skip cannot exceed ${maxSkip}, got: ${skip}`);
       }
     }
 
@@ -202,9 +213,36 @@ class QueryParser {
       if (Number.isNaN(top) || !Number.isInteger(top) || top < 0) {
         throw new BadRequestError(`$top must be a non-negative integer, got: ${top}`);
       }
-      if (top > 1000) {
-        throw new BadRequestError(`$top cannot exceed 1000, got: ${top}`);
+      const maxTop = this.options.maxTop ?? QUERY_DEFAULTS.MAX_TOP;
+      if (top > maxTop) {
+        throw new BadRequestError(`$top cannot exceed ${maxTop}, got: ${top}`);
       }
+    }
+  }
+
+  /**
+   * Validates that the expansion depth does not exceed the configured limit
+   */
+  private validateExpandDepth(expandClauses: ExpandClause[]) {
+    const maxDepth = this.options.expandDepth;
+    if (maxDepth === undefined || !expandClauses || expandClauses.length === 0) {
+      return;
+    }
+
+    const calculateDepth = (clauses: ExpandClause[]): number => {
+      if (!clauses || clauses.length === 0) return 0;
+      let depth = 1;
+      for (const clause of clauses) {
+        if (clause.expand && clause.expand.length > 0) {
+          depth = Math.max(depth, 1 + calculateDepth(clause.expand));
+        }
+      }
+      return depth;
+    };
+
+    const currentDepth = calculateDepth(expandClauses);
+    if (currentDepth > maxDepth) {
+      throw new BadRequestError(`$expand depth cannot exceed ${maxDepth}, got: ${currentDepth}`);
     }
   }
 
